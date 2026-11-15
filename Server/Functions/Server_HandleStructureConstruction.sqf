@@ -104,7 +104,18 @@ if (_completion >= 100) then {
 	//--- Do we use our alternative damage system to prevent some bisteries from happening?
 	_alternative_damages = false;
 	_reduce_damages = 0;
-	{if ("DMG_Alternative" in _x) then {_alternative_damages = true}; if ("DMG_Reduce" in _x) then {_reduce_damages = _x select 1}; if ("Connected" in _x) then {_structure setVariable ["AN_iNet",_side_id,true]; _structure setVariable ["AN_Parrents",[_structure],false];} } forEach (_var select 5);
+		// ЦУ/связанные структуры должны иметь и CTI_Net (принадлежность стороне),
+	// иначе граф сети не строится от корня корректно
+	{if ("DMG_Alternative" in _x) then {_alternative_damages = true}; if ("DMG_Reduce" in _x) then {_reduce_damages = _x select 1}; 
+	if ("Connected" in _x) then {
+    _structure setVariable ["CTI_Net",_side_id,true];
+    _structure setVariable ["AN_iNet",_side_id,true];
+    _structure setVariable ["AN_Conn",objNull,true];
+    _structure setVariable ["AN_Parrents",[],false];
+    // Запускаем ANET для ЦУ: AN_Launch инициализирует циклы,
+    // AN_Reconfigure найдёт ретранслятор (HQ/техника/город)
+    [_structure, _side_id] spawn AN_Launch;
+} } forEach (_var select 5);
 	if (_alternative_damages) then {
 		_structure setVariable ["cti_altdmg", 0,true];
 		_structure addEventHandler ["handledamage", format ["[_this select 0, _this select 2, _this select 3, '%1', %2, %3, %4, %5, %6] call CTI_SE_FNC_OnBuildingHandleVirtualDamage", _variable, (_side) call CTI_CO_FNC_GetSideID, _position, _direction, _completion_ratio, _reduce_damages]];
@@ -146,9 +157,9 @@ if (_structure_type == CTI_CONTROLCENTER) then {
                 diag_log format ["[ANET] Переподключаем стартовую технику %1 к CC", typeOf _veh];
                 
                 // === ПОЛНЫЙ СБРОС ANET ===
-                _veh setVariable ["AN_iNet", nil, true];
-                _veh setVariable ["AN_Conn", objNull, true];   // ← СБРАСЫВАЕМ
-                _veh setVariable ["AN_Parrents", nil, true];
+                _veh setVariable ["AN_iNet", -1, true];
+				_veh setVariable ["AN_Conn", objNull, true];
+				_veh setVariable ["AN_Parrents", [], true];
                 
                 // Запускаем AN_Launch
                 [_veh, _sideID] spawn AN_Launch;
@@ -167,9 +178,9 @@ if (_structure_type == CTI_CONTROLCENTER) then {
             if (isNil "_unit" || {isNull _unit}) then { continue; };
             
             if (!isPlayer _unit && {alive _unit} && {!isNil {_unit getVariable "cti_start_unit"}}) then {
-                _unit setVariable ["AN_iNet", nil, true];
-                _unit setVariable ["AN_Conn", objNull, true]; // ← СБРАСЫВАЕМ
-                _unit setVariable ["AN_Parrents", nil, true];
+                _unit setVariable ["AN_iNet", -1, true];
+				_unit setVariable ["AN_Conn", objNull, true];
+				_unit setVariable ["AN_Parrents", [], true];
                 [_unit, _sideID] spawn AN_Launch;
                 sleep 1;
                 _unit spawn AN_Reconfigure;

@@ -108,8 +108,7 @@ if (_neededBots > 0) then {
         
         // === ПОЛНАЯ РЕГИСТРАЦИЯ В СТРУКТУРЕ BECTI ===
         _bot setVariable ["cti_net", _sideID, true];
-        _bot setVariable ["AN_iNet", _sideID, true];
-        _bot setVariable ["AN_Conn", objNull, true];  // === NETWORKED (для синхронизации с клиентами) ===
+        // AN_iNet и AN_Conn НЕ устанавливаем здесь - это сделает AN_Launch
         _bot setVariable ["cti_ai_order", CTI_ORDER_CLIENT_NONE, true];
         _bot setVariable ["cti_ai_order_pos", [0,0], true];
         _bot setVariable ["cti_ai_side", _side, true];
@@ -128,11 +127,8 @@ if (_neededBots > 0) then {
         // === ИНИЦИАЛИЗАЦИЯ МАРКЕРОВ ДЛЯ 3D МИРА ===
         [_bot, _sideID] call CTI_CO_FNC_InitializeNetVehicle;
         
-                // === ЗАПУСК СЕТИ ДЛЯ БОТА ЛОКАЛЬНО ===
-        // Бот создан здесь через createUnit и local на этой машине.
-        // На dedicated сервер его не видит (CTI_AI_Units приходит как objNull),
-        // поэтому серверный запуск не срабатывает. AN_Launch сам создаёт CTI_Net
-        // и спавнит оба цикла там, где бот реально живёт.
+        // === ЗАПУСК СЕТИ ДЛЯ БОТА ЛОКАЛЬНО НА КЛИЕНТЕ ===
+        // Бот создан на клиенте и локален здесь. Запускаем сеть локально.
         [_bot, _sideID] spawn AN_Launch;
         
         sleep 0.25;
@@ -160,6 +156,8 @@ if (count _vehiclesToSpawn > 0) then {
         private _spawnDir = getDir player;
 
         // === СОЗДАНИЕ ТЕХНИКИ ЧЕРЕЗ ОФИЦИАЛЬНУЮ ФУНКЦИЮ BECTI ===
+        // Параметры: CLASSNAME, POSITION, DIRECTION, SIDE, LOCKED, PUBLIC, HANDLED, SPECIAL
+        // PUBLIC = true означает что техника будет инициализирована через Server_Run_Net
         private _veh = [_currentVehClass, _spawnPos, _spawnDir, _sideID, false, true, true] call CTI_CO_FNC_CreateVehicle;
 
         if (isNil "_veh" || {isNull _veh}) then {
@@ -176,8 +174,8 @@ if (count _vehiclesToSpawn > 0) then {
         _veh setVariable ["cti_owner", player, true];
         _veh setVariable ["cti_owner_uid", getPlayerUID player, true];
         _veh setVariable ["cti_side", _sideID, true];
-        _veh setVariable ["cti_net", _sideID, true];
-        _veh setVariable ["AN_iNet", _sideID, true];
+        // ct_net уже установлен через CTI_CO_FNC_CreateVehicle с параметром PUBLIC=true
+        // AN_iNet и AN_Conn НЕ устанавливаем здесь - это сделает AN_Launch через Server_Run_Net
         
         // === МЕТКА ДЛЯ ПЕРЕПОДКЛЮЧЕНИЯ К СЕТИ ===
         _veh setVariable ["cti_start_vehicle", true, true];
@@ -190,14 +188,6 @@ if (count _vehiclesToSpawn > 0) then {
         
         // === ИНИЦИАЛИЗАЦИЯ МАРКЕРОВ ДЛЯ 3D МИРА ===
         [_veh, _sideID] call CTI_CO_FNC_InitializeNetVehicle;
-        
-        // === РЕГИСТРАЦИЯ В ANET НА СЕРВЕРЕ ===
-        // ИСПРАВЛЕНИЕ БАГА #3: запускаем на машине владельца, а не на сервере
-        if (CTI_IsServer) then {
-            _veh spawn AN_Update_Connection;
-        } else {
-            _veh spawn AN_Update_Connection;
-        };
         
         if (count (configFile >> "CfgVehicles" >> _currentVehClass >> "Turrets") > 0) then {
             _veh setVariable ["cti_ai_gunner", true, true];
@@ -212,7 +202,7 @@ if (count _vehiclesToSpawn > 0) then {
         clearBackpackCargoGlobal _veh;
 
         _veh addMagazineCargoGlobal ["30Rnd_556x45_Stanag", 15];
-        _veh addMagazineCargoGlobal ["30Rnd_65x39_caseless_green", 15];
+        _veh addMagazineCargoGlobal ["30Rnd_6539_caseless_green", 15];
         _veh addItemCargoGlobal ["FirstAidKit", 5];
         _veh addItemCargoGlobal ["ToolKit", 1];
 
@@ -228,7 +218,7 @@ if (count _vehiclesToSpawn > 0) then {
         _driver setCombatMode "YELLOW";
         
         _driver setVariable ["cti_net", _sideID, true];
-        _driver setVariable ["AN_iNet", _sideID, true];
+        // AN_iNet НЕ устанавливаем - это сделает AN_Launch
         _driver setVariable ["cti_ai_order", CTI_ORDER_CLIENT_NONE, true];
         _driver setVariable ["cti_ai_order_pos", [0,0], true];
         _driver setVariable ["cti_ai_side", _side, true];
@@ -239,6 +229,9 @@ if (count _vehiclesToSpawn > 0) then {
         _driver setSkill 0.5;
         _driver setUnitAbility 0.5;
         CTI_AI_Units pushBack _driver;
+        
+        // Запуск сети для водителя локально
+        [_driver, _sideID] spawn AN_Launch;
 
         // === СТРЕЛОК ===
         if (_veh emptyPositions "gunner" > 0) then {
@@ -253,7 +246,7 @@ if (count _vehiclesToSpawn > 0) then {
             _gunner setCombatMode "YELLOW";
             
             _gunner setVariable ["cti_net", _sideID, true];
-            _gunner setVariable ["AN_iNet", _sideID, true];
+            // AN_iNet НЕ устанавливаем
             _gunner setVariable ["cti_ai_order", CTI_ORDER_CLIENT_NONE, true];
             _gunner setVariable ["cti_ai_order_pos", [0,0], true];
             _gunner setVariable ["cti_ai_side", _side, true];
@@ -264,6 +257,9 @@ if (count _vehiclesToSpawn > 0) then {
             _gunner setSkill 0.5;
             _gunner setUnitAbility 0.5;
             CTI_AI_Units pushBack _gunner;
+            
+            // Запуск сети для стрелка локально
+            [_gunner, _sideID] spawn AN_Launch;
         };
 
         // === КОМАНДИР ===
@@ -279,7 +275,7 @@ if (count _vehiclesToSpawn > 0) then {
             _commander setCombatMode "YELLOW";
             
             _commander setVariable ["cti_net", _sideID, true];
-            _commander setVariable ["AN_iNet", _sideID, true];
+            // AN_iNet НЕ устанавливаем
             _commander setVariable ["cti_ai_order", CTI_ORDER_CLIENT_NONE, true];
             _commander setVariable ["cti_ai_order_pos", [0,0], true];
             _commander setVariable ["cti_ai_side", _side, true];
@@ -290,6 +286,9 @@ if (count _vehiclesToSpawn > 0) then {
             _commander setSkill 0.5;
             _commander setUnitAbility 0.5;
             CTI_AI_Units pushBack _commander;
+            
+            // Запуск сети для командира локально
+            [_commander, _sideID] spawn AN_Launch;
         };
 
         // ИСПРАВЛЕНИЕ БАГА #1: publicVariable заменён на запрос к серверу
@@ -323,7 +322,7 @@ if (count _vehiclesToSpawn > 0) then {
     if (alive _x) then {
         if (isNil {_x getVariable "cti_net"}) then {
             _x setVariable ["cti_net", _sideID, true];
-            _x setVariable ["AN_iNet", _sideID, true];
+            // AN_iNet НЕ устанавливаем здесь - это должно быть установлено через AN_Launch
         };
         
         _x setVariable ["cti_ai_order", CTI_ORDER_CLIENT_NONE, true];
@@ -353,4 +352,4 @@ if (!CTI_IsServer) then {
 
 player groupChat (localize "STR_CTI_SquadReady_Custom");
 diag_log format ["[BECTI] Стартовый отряд игрока %1 успешно инициализирован. AI: %2, Техника: %3", 
-    name player, count CTI_AI_Units, count CTI_Player_Vehicles];    
+    name player, count CTI_AI_Units, count CTI_Player_Vehicles];

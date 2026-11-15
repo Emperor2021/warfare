@@ -61,6 +61,20 @@ if !(CTI_P_Jailed && _killed ==_killer ) then {[_killed, _killer, CTI_P_SideID] 
 waitUntil {alive player};
 hideobject _killed;
 
+// === ОЧИСТКА СЕТЕВЫХ ПЕРЕМЕННЫХ ПОСЛЕ РЕСПАВНА ===
+// Сбрасываем сетевое состояние в валидные значения.
+// ВАЖНО: нельзя ставить nil, иначе AN_Reconfigure выходит по isNil {AN_iNet}
+// и сеть не восстанавливается. Ставим -1 / objNull / [] — это "нет сети",
+// но валидное состояние, которое AN_Reconfigure обработает и найдёт ретранслятор.
+player setVariable ["AN_iNet", -1, true];
+player setVariable ["AN_Conn", objNull, true];
+player setVariable ["AN_Parrents", [], true];
+player setVariable ["CTI_Net", (side player) call CTI_CO_FNC_GetSideID, true];
+player setVariable ["AN_updHandle", nil, false];  // локально, handle не networked
+player setVariable ["AN_recHandle", nil, false];  // локально, handle не networked
+
+CTI_DeathTimer = time + (missionNamespace getVariable "CTI_RESPAWN_TIMER");
+
 /*
 if (CTI_P_Jailed) exitWith {
 	600 spawn CTI_CL_FNC_OnJailed

@@ -227,8 +227,8 @@ if !( (player) getVariable "AN_iNet" == _side_id && (player getVariable ["CTI_Ne
             if (! alive _vehicle) then {_color = [0,0,0,1];};
             _keys = _vehicle getVariable ["v_keys",["",grpNull]];
             _second_color = _color;
-            if ((_vehicle == vehicle player || group player == _keys select 1 || getPlayerUID player == _keys select 0) && isNil {_vehicle getVariable "cti_start_vehicle"}) then {_second_color = [1,0.65,0,1];};
-            
+            // Своя техника всегда оранжевая, включая стартовую (убрана проверка на метку)
+            if (_vehicle == vehicle player || group player == _keys select 1 || getPlayerUID player == _keys select 0) then {_second_color = [1,0.65,0,1];};
             _pos = getPosASL _vehicle;
             _size = [25, 25];
             

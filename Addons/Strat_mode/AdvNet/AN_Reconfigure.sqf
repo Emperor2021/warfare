@@ -16,7 +16,7 @@ if (CTI_isServer) then {waituntil {CTI_Init_Server};};
 _connected_to=objNull;
 _global=if (_vehicle isKindOf "Man") then {true} else  {true};
 _side_id=_vehicle getVariable ["CTI_Net",-11];
-if (_side_id < 0 || isNil {_vehicle getVariable "AN_iNet"}) exitWith {false};
+if (_side_id < 0) exitWith {false};
 
 _side =(_side_id)  call CTI_CO_FNC_GetSideFromID;
 _forced=_vehicle getVariable ["AN_Forced",false];
@@ -52,11 +52,16 @@ if (_side in [east,west] ) then {
 if (_vehicle isKindOf "Man") then {_max_distance=AN_Range_I+200*_up_r;} else {_max_distance=AN_Range_V+1000*_up_r;};
 if (_vehicle isKindOf "FlagPole_F") then {_max_distance=5000};
 
-// Try to connect to closest CC
+// Try to connect to closest CC (исключая сам объект, иначе ЦУ подключается к себе)
 if (_side in [east,west]) then {
-	_structures = (_side) call CTI_CO_FNC_GetSideStructures;
-	_ccs = [CTI_CONTROLCENTER, _structures] call CTI_CO_FNC_GetSideStructuresByType;
-	{ if (_vehicle distance _x <= _max_distance) then {_candidates set [count _candidates,_x];}; true}count _ccs;
+    _structures = (_side) call CTI_CO_FNC_GetSideStructures;
+    _ccs = [CTI_CONTROLCENTER, _structures] call CTI_CO_FNC_GetSideStructuresByType;
+    { 
+        if ((_vehicle distance _x <= _max_distance) && !(_x == _vehicle) && (_x getVariable ["AN_iNet",-1] == _side_id)) then {
+            _candidates set [count _candidates,_x];
+        }; 
+        true
+    } count _ccs;
 };
 // Try to connect to closest town
 if (count _candidates == 0 || _vehicle isKindOf "FlagPole_F"&& (_side in [east,west])) then {

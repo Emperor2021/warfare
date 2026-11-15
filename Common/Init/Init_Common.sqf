@@ -88,6 +88,7 @@ CTI_CO_FNC_GetRandomSkill = compileFinal preprocessFileLineNumbers "Addons\AiRan
 CTI_CO_FNC_GetSideFlag = compileFinal preprocessFileLineNumbers "Common\Functions\Common_GetSideFlag.sqf";
 
 CTI_CO_CustomIterator = 0;
+if (isNil "NET_LOG") then { NET_LOG = false; };
 
 call compile preprocessFileLineNumbers "Common\Config\Artillery\Artillery.sqf";
 call compile preprocessFileLineNumbers "Common\Config\Towns\Towns_Resistance.sqf";
