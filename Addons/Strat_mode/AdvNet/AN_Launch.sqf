@@ -1,6 +1,6 @@
 private ["_vehicle","_side_id","_net_global","_upd","_rec","_log"];
 
-// Защита параметров (§  25)
+// Защита параметров (§25)
 if (typeName _this != "ARRAY") exitWith {false};
 if (count _this < 2) exitWith {false};
 _vehicle = _this select 0;
