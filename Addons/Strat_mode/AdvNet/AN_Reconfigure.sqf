@@ -1,125 +1,145 @@
 #define	AN_Range_V	1000
 #define	AN_Range_I	100
 
-
-
-
 /*
-_vehicle getVariable "AN_Conn"
-_vehicle getVariable "AN_iNet"
-_vehicle getVariable "CTI_Net"
+	Переменные узла сети:
+	CTI_Net    — принадлежность стороне (0/1), -1 = осознанно вне сети, nil = не инициализирован
+	AN_iNet    — вычисленная связность (-1 или сторона)
+	AN_Conn    — родитель в графе
+	AN_Parrents— список детей узла
 */
-private ["_vehicle","_connected_to","_global","_side_id","_side","_forced","_candidates","_max_distance","_up_r","_up","_structures","_ccs","_town","_hq","_final","_parent_list","_already_parent"];
 
-_vehicle=_this;
-if (CTI_isServer) then {waituntil {CTI_Init_Server};};
-_connected_to=objNull;
-_global=if (_vehicle isKindOf "Man") then {true} else  {true};
-_side_id=_vehicle getVariable ["CTI_Net",-11];
+private ["_vehicle","_global","_side_id","_side","_forced","_candidates","_max_distance","_up_r","_up","_structures","_ccs","_town","_hq","_final","_parent_list","_already_parent","_my_conn","_log","_dbg","_cand"];
+
+_vehicle = _this;
+if (typeName _vehicle != "OBJECT") exitWith {false};
+if (isNull _vehicle) exitWith {false};
+
+if (CTI_isServer) then {waitUntil {CTI_Init_Server};};
+
+_log = missionNamespace getVariable ["NET_LOG", false];
+
+// networked для всех узлов
+_global = true;
+
+_side_id = _vehicle getVariable ["CTI_Net", -11];
 if (_side_id < 0) exitWith {false};
 
-_side =(_side_id)  call CTI_CO_FNC_GetSideFromID;
-_forced=_vehicle getVariable ["AN_Forced",false];
-if (_forced) exitWith {
-	if !(_vehicle getVariable ["AN_Conn",objNull] == _vehicle ) then {_vehicle setVariable ["AN_Conn",_vehicle,_global];};
-	if !( count (_vehicle getVariable ["AN_Parrents",[objNull]]) == 0 ) then {_vehicle setVariable ["AN_Parrents",[],false];};
-};
+_side = (_side_id) call CTI_CO_FNC_GetSideFromID;
 
-// HQ
-if (_vehicle == (_side) call CTI_CO_FNC_GetSideHQ  ) exitwith {
-	if !(_vehicle getVariable "AN_Conn" == _vehicle ) then {_vehicle setVariable ["AN_Conn",_vehicle,true];};
-	if !(_vehicle getVariable "AN_iNet" == _side_id ) then {_vehicle setVariable ["AN_iNet",_side_id,true];};
-	if !({_x == _vehicle} count  (_vehicle getVariable "AN_Parrents")>1 ) then {_vehicle setVariable ["AN_Parrents",[_vehicle],false];};
+// Принудительный узел — корень сам себе
+_forced = _vehicle getVariable ["AN_Forced", false];
+if (_forced) exitWith {
+	if !((_vehicle getVariable ["AN_Conn", objNull]) isEqualTo _vehicle) then {_vehicle setVariable ["AN_Conn", _vehicle, _global]};
+	_vehicle setVariable ["AN_Parrents", [], false];
 	false
 };
 
-// man and inside vehicle
-
-// getVariable с default: nil в AN_iNet иначе даёт type error и убивает скрипт
-if (_vehicle isKindOf "Man" && !(vehicle _vehicle == _vehicle)&& (vehicle _vehicle) getVariable ["AN_iNet",-1] == _side_id  ) exitwith {
-	if !(_vehicle getVariable "AN_Conn" == (vehicle _vehicle) ) then {_vehicle setVariable ["AN_Conn",vehicle _vehicle,true];}; };
-
-// Candidates and max distance
-_candidates=[];
-_max_distance=5000;
-_up_r=0;
-if (_side in [east,west] ) then {
-	_up=(_side) call CTI_CO_FNC_GetSideUpgrades;
-	_up_r=_up select CTI_UPGRADE_NETR;
-} else {
-	_up_r=0;
+// HQ — корень сети: ссылается на сам себя, AN_iNet всегда равен стороне
+if (_vehicle isEqualTo ((_side) call CTI_CO_FNC_GetSideHQ)) exitWith {
+	if !((_vehicle getVariable ["AN_Conn", objNull]) isEqualTo _vehicle) then {_vehicle setVariable ["AN_Conn", _vehicle, true]};
+	if !((_vehicle getVariable ["AN_iNet", -1]) isEqualTo _side_id) then {_vehicle setVariable ["AN_iNet", _side_id, true]};
+	if !(_vehicle in (_vehicle getVariable ["AN_Parrents", []])) then {_vehicle setVariable ["AN_Parrents", [_vehicle], false]};
+	false
 };
-if (_vehicle isKindOf "Man") then {_max_distance=AN_Range_I+200*_up_r;} else {_max_distance=AN_Range_V+1000*_up_r;};
-if (_vehicle isKindOf "FlagPole_F") then {_max_distance=5000};
 
-// Try to connect to closest CC (исключая сам объект, иначе ЦУ подключается к себе)
-if (_side in [east,west]) then {
-    _structures = (_side) call CTI_CO_FNC_GetSideStructures;
-    _ccs = [CTI_CONTROLCENTER, _structures] call CTI_CO_FNC_GetSideStructuresByType;
-    { 
-        if ((_vehicle distance _x <= _max_distance) && !(_x == _vehicle) && (_x getVariable ["AN_iNet",-1] == _side_id)) then {
-            _candidates set [count _candidates,_x];
-        }; 
-        true
-    } count _ccs;
+// ЦУ — второй корень сети, по тому же паттерну что HQ.
+// Без этой ветки ЦУ обрабатывался как обычный узел: искал родителя, не находил
+// (HQ мёртв, техника offline) и сбрасывал себе AN_iNet = -1 в else-ветке.
+// После этого техника не могла к нему подключиться, т.к. фильтр кандидатов
+// требует AN_iNet == sideID -> взаимная блокировка, сеть стороны мертва целиком.
+// Два ЦУ = два независимых корня, резервирование.
+if ((_vehicle getVariable ["cti_structure_type", ""]) isEqualTo CTI_CONTROLCENTER) exitWith {
+	if !((_vehicle getVariable ["AN_Conn", objNull]) isEqualTo _vehicle) then {_vehicle setVariable ["AN_Conn", _vehicle, true]};
+	if !((_vehicle getVariable ["AN_iNet", -1]) isEqualTo _side_id) then {_vehicle setVariable ["AN_iNet", _side_id, true]};
+	if !(_vehicle in (_vehicle getVariable ["AN_Parrents", []])) then {_vehicle setVariable ["AN_Parrents", [_vehicle], false]};
+	false
 };
-// Try to connect to closest town
-if (count _candidates == 0 || _vehicle isKindOf "FlagPole_F"&& (_side in [east,west])) then {
+
+// Пехота внутри техники — родитель это её транспорт
+// getVariable с default: nil в сравнении даёт type error и обрывает функцию
+if (_vehicle isKindOf "Man" && {!(vehicle _vehicle isEqualTo _vehicle)} && {(vehicle _vehicle) getVariable ["AN_iNet", -1] isEqualTo _side_id}) exitWith {
+	if !((_vehicle getVariable ["AN_Conn", objNull]) isEqualTo (vehicle _vehicle)) then {_vehicle setVariable ["AN_Conn", vehicle _vehicle, true]};
+	false
+};
+
+// Радиус поиска кандидатов
+_candidates = [];
+_max_distance = 5000;
+_up_r = 0;
+if (_side in [east, west]) then {
+	_up = (_side) call CTI_CO_FNC_GetSideUpgrades;
+	// Проверка длины: select за границей массива обрывает функцию
+	if (typeName _up == "ARRAY" && {count _up > CTI_UPGRADE_NETR}) then {
+		_up_r = _up select CTI_UPGRADE_NETR;
+	};
+};
+if (_vehicle isKindOf "Man") then {_max_distance = AN_Range_I + 200 * _up_r} else {_max_distance = AN_Range_V + 1000 * _up_r};
+if (_vehicle isKindOf "FlagPole_F") then {_max_distance = 5000};
+
+// HQ берём один раз — раньше вызывался для каждого объекта в vehicles (§12)
+_hq = (_side) call CTI_CO_FNC_GetSideHQ;
+
+// Кандидаты: ЦУ (исключая сам объект и разрушенные)
+if (_side in [east, west]) then {
+	_structures = (_side) call CTI_CO_FNC_GetSideStructures;
+	_ccs = [CTI_CONTROLCENTER, _structures] call CTI_CO_FNC_GetSideStructuresByType;
 	{
-		_town=_x;
-				if (!(isNull _town) && !(_town == _vehicle) && _vehicle distance _town <=  _max_distance && (_town getVariable ["AN_iNet",-1] == _side_id )&& ! (_x getVariable ["AN_Conn",objNull] == _vehicle) && {_x == _vehicle} count (_x getVariable ["AN_Parrents",[]]) == 0 ) then
-		{
-			_candidates set [count _candidates,_town];
-		};
-
-	} count ( (_side_id) call CTI_CO_FNC_GetSideTowns);
+		if ((_vehicle distance _x <= _max_distance) && {!(_x isEqualTo _vehicle)} && {alive _x} && {(_x getVariable ["AN_iNet", -1]) isEqualTo _side_id}) then {_candidates pushBack _x};
+		true
+	} count _ccs;
 };
 
-// try to connect to the HQ
-if ((count _candidates == 0) && _side in [east,west]) then {
-	_hq = (_side) call CTI_CO_FNC_GetSideHQ;
-	if ((_vehicle distance _hq <= _max_distance) && alive _hq) then { _candidates set [count _candidates,_hq]};
-};
-
-// try to connect to another connected vehicle
-if (!(_vehicle isKindOf "FlagPole_F"))  then {
+// Кандидаты: города
+if (count _candidates == 0 || {_vehicle isKindOf "FlagPole_F" && {_side in [east, west]}}) then {
 	{
-		// Ретранслятор обязан быть в радиусе сети этого узла (как для ЦУ/городов/HQ выше)
-		if (
-			(_vehicle distance _x <= _max_distance) &&
-			!(_x == _vehicle) &&
-			!(_x == (_side) call CTI_CO_FNC_GetSideHQ) &&
-			alive _x &&
-			(_x getVariable ["AN_iNet",-1] == _side_id) &&
-			!(_x getVariable ["AN_Conn",objNull] == _vehicle) &&
-			{_x == _vehicle} count (_x getVariable ["AN_Parrents",[]]) == 0
-		) then {_candidates set [count _candidates,_x]};
+		_town = _x;
+		if (!(isNull _town) && {!(_town isEqualTo _vehicle)} && {_vehicle distance _town <= _max_distance} && {(_town getVariable ["AN_iNet", -1]) isEqualTo _side_id} && {!((_town getVariable ["AN_Conn", objNull]) isEqualTo _vehicle)} && {!(_vehicle in (_town getVariable ["AN_Parrents", []]))}) then {_candidates pushBack _town};
+		true
+	} count ((_side_id) call CTI_CO_FNC_GetSideTowns);
+};
+
+// Кандидат: HQ
+if (count _candidates == 0 && {_side in [east, west]}) then {
+	if (!isNull _hq && {alive _hq} && {_vehicle distance _hq <= _max_distance}) then {_candidates pushBack _hq};
+};
+
+// Кандидаты: техника-ретранслятор
+// Ретранслятор обязан быть в радиусе сети этого узла, в сети стороны,
+// не ссылаться на нас и не содержать нас в списке детей (защита от петель).
+// in вместо вложенного {_x == _vehicle} count: вложенный code-block внутри
+// многострочного условия ломал парсер SQF ("Потеряна }")
+if (!(_vehicle isKindOf "FlagPole_F")) then {
+	{
+		_cand = _x;
+		if ((_vehicle distance _cand <= _max_distance) && {!(_cand isEqualTo _vehicle)} && {!(_cand isEqualTo _hq)} && {alive _cand} && {(_cand getVariable ["AN_iNet", -1]) isEqualTo _side_id} && {!((_cand getVariable ["AN_Conn", objNull]) isEqualTo _vehicle)} && {!(_vehicle in (_cand getVariable ["AN_Parrents", []]))}) then {_candidates pushBack _cand};
+		true
 	} count vehicles;
 };
 
-
-// sort candidates
+// Ближайший кандидат становится родителем
 _final = [_vehicle, _candidates] call CTI_CO_FNC_GetClosestEntity;
 
-// Connect to the closest connected  & update
-// Защита от циклов: не подключаться к самому себе
-if ! (isNull _final) then {
-	if !(_final == _vehicle) then {
-		if !(_final == _vehicle getVariable "AN_Conn") then {
-			_vehicle setVariable ["AN_Conn",_final,_global];
+if !(isNull _final) then {
+	if !(_final isEqualTo _vehicle) then {
+		if !(_final isEqualTo (_vehicle getVariable ["AN_Conn", objNull])) then {
+			_vehicle setVariable ["AN_Conn", _final, _global];
 		};
-		// Проверяем отсутствие циклической ссылки перед добавлением в parents
-		_parent_list = (_final getVariable ["AN_Parrents",[]]);
+		_parent_list = (_final getVariable ["AN_Parrents", []]);
 		_already_parent = (_vehicle in _parent_list);
 		if !(_already_parent) then {
-			_vehicle setVariable ["AN_Parrents",_parent_list + [_vehicle],false];
+			_vehicle setVariable ["AN_Parrents", _parent_list + [_vehicle], false];
 		};
 	};
-	if (NET_LOG) then {diag_log format [":: NET :: Sucess in reconf %1 to %2 through %3",_vehicle,_final,((_vehicle getVariable "AN_Conn") getVariable ["AN_Parrents",[]]) ]};
+	if (_log) then {
+		_my_conn = _vehicle getVariable ["AN_Conn", objNull];
+		_dbg = [];
+		if !(isNull _my_conn) then {_dbg = _my_conn getVariable ["AN_Parrents", []]};
+		diag_log format [":: NET :: Sucess in reconf %1 to %2 through %3", _vehicle, _final, _dbg];
+	};
 } else {
-	_vehicle setVariable ["AN_Conn",_final,_global];
-	_vehicle setVariable ["AN_iNet",-1,true];
-	_vehicle setVariable ["AN_Parrents",[],false];
-	if (NET_LOG) then {diag_log format [":: NET ::Failure in reconf %1",_vehicle ]};
-
+	_vehicle setVariable ["AN_Conn", objNull, _global];
+	_vehicle setVariable ["AN_iNet", -1, true];
+	_vehicle setVariable ["AN_Parrents", [], false];
+	if (_log) then {diag_log format [":: NET :: Failure in reconf %1", _vehicle]};
 };
