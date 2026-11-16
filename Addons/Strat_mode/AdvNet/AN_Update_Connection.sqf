@@ -1,35 +1,37 @@
-private ["_vehicle"];
-_vehicle=_this;
+private ["_vehicle","_ownerOK","_conn","_connNet","_myNet"];
+_vehicle = _this;
+if (typeName _vehicle != "OBJECT") exitWith {false};
+if (isNull _vehicle) exitWith {false};
 
-// Клиент считает сеть ТОЛЬКО для своей локальной пехоты (боты в группе игрока).
-// Игрока, технику и города считает сервер — иначе два писателя AN_iNet.
-if (!CTI_isServer && {!(_vehicle isKindOf "Man") || {!local _vehicle} || {isPlayer _vehicle}}) exitWith {false};
+// Разделение authority:
+// сервер считает ВСЁ (техника, города, HQ, игрок), кроме чужих клиентских ботов;
+// клиент считает только своих локальных ботов (сервер их не видит).
+// Техника всегда на сервере — запуск AN_Launch для неё идёт через Server_Run_Net.
+_ownerOK = if (CTI_isServer) then {
+	!(_vehicle isKindOf "Man" && {!isPlayer _vehicle} && {!local _vehicle})
+} else {
+	(_vehicle isKindOf "Man") && {!isPlayer _vehicle} && {local _vehicle}
+};
+// exitWith строго на верхнем уровне: внутри then{} он вышел бы только из блока,
+// и хвост setVariable ["AN_iNet",nil,true] удалил бы переменную локально
+if (!_ownerOK) exitWith {false};
 
-while {! CTI_GameOver && alive  _vehicle} do {
+while {!CTI_GameOver && alive _vehicle} do {
 	if ((_vehicle) call AN_Check_Connection) then {
-		if !((_vehicle getVariable "AN_iNet") == (_vehicle getVariable "AN_Conn") getVariable "AN_iNet") then {
-			_vehicle setVariable ["AN_iNet",(_vehicle getVariable "AN_Conn") getVariable "AN_iNet" ,true];
+		_conn = _vehicle getVariable ["AN_Conn", objNull];
+		// default обязателен: у мёртвого узла AN_iNet = nil, сравнение nil убивает цикл
+		_connNet = if (isNull _conn) then {-1} else {_conn getVariable ["AN_iNet", -1]};
+		_myNet = _vehicle getVariable ["AN_iNet", -1];
+		if (_myNet != _connNet) then {
+			_vehicle setVariable ["AN_iNet", _connNet, true];
 		};
 	} else {
-		if !((_vehicle getVariable "AN_iNet") == -1) then {
-			_vehicle setVariable ["AN_iNet",-1,true];
+		if ((_vehicle getVariable ["AN_iNet", -1]) != -1) then {
+			_vehicle setVariable ["AN_iNet", -1, true];
 		};
 	};
-	
-	// Обновляем статус связи для локального игрока
-	if (!CTI_isServer && {_vehicle isKindOf "Man"} && {local _vehicle} && {isPlayer _vehicle}) then {
-		private _iNet = _vehicle getVariable ["AN_iNet", -1];
-		private _connected = (_iNet == CTI_P_SideID);
-		
-		if (isNil "Client_AN_Connected" || {Client_AN_Connected != _connected}) then {
-			Client_AN_Connected = _connected;
-			if (CTI_Log_Level >= CTI_Log_Information) then {
-				["INFORMATION", "FILE: AN_Update_Connection.sqf", 
-				format["Client network status: %1", if (_connected) then {"CONNECTED"} else {"DISCONNECTED"}]] call CTI_CO_FNC_Log;
-			};
-		};
-	};
-	
 	sleep 3;
 };
-_vehicle setVariable ["AN_iNet",nil,true];
+
+// Узел умер — освобождаем признак инициализации для AN_Launch
+_vehicle setVariable ["AN_iNet", nil, true];

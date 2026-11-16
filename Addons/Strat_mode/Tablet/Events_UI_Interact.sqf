@@ -543,6 +543,7 @@ if (_inter_count > 0) then {
 		if ((player getVariable ['CTI_Net', -1]) != -1) then {
 			// Отключаем сеть игрока
 			player setVariable ['CTI_Net', -1, true];
+			player setVariable ['AN_NetOff', true, true];
 			player setVariable ['AN_iNet', -1, true];
 			// Если игрок в технике — отключаем и технику (боты могут быть подключены к ней)
 			if (vehicle player != player) then {
@@ -552,6 +553,7 @@ if (_inter_count > 0) then {
 		} else {
 			// Включаем сеть игрока
 			player setVariable ['CTI_Net', CTI_P_SideID, true];
+			player setVariable ['AN_NetOff', false, true];
 			player setVariable ['AN_iNet', CTI_P_SideID, true];
 			// Если игрок в технике — включаем и технику
 			if (vehicle player != player) then {
