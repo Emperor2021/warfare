@@ -61,6 +61,42 @@ showCinemaBorder false;
 
 // Проявляем картинку поверх камеры (BLACK OUT был в OnPlayerKilled)
 titleCut ["", "BLACK IN", 1];
+//--- Печатная машинка: имя убийцы сверху по центру (только если есть убийца)
+if (_showKiller) then {
+	[_culprit] spawn {
+		params ["_who"];
+		if (isNull _who) exitWith {};
+
+		// Цвет по стороне УБИТОГО: WEST синий, EAST красный, GUER зелёный
+		private _colorHex = switch (CTI_P_SideJoined) do {
+			case west: {"#4080FF"};
+			case east: {"#FF3030"};
+			default {"#33CC33"};
+		};
+
+		// Ждём дисплей респавн-меню (контролируемо, с таймаутом)
+		private _disp = objNull;
+		private _wait = 0;
+		while {isNull _disp && _wait < 3} do {
+			_disp = findDisplay 120000;
+			uiSleep 0.1;
+			_wait = _wait + 0.1;
+		};
+		if (isNull _disp) exitWith {};
+
+		private _ctrl = _disp displayCtrl 120004;
+		private _full = format [localize "STR_SVB_DeathCam_KillLine", name _who];
+		private _shown = "";
+
+		// Посимвольно, эффект печатной машинки
+		{
+			if (isNull _disp) exitWith {}; // меню закрыли (респаун) — выходим
+			_shown = _shown + toString [_x];
+			_ctrl ctrlSetStructuredText parseText format ["<t align='center' color='%1'>%2</t>", _colorHex, _shown];
+			uiSleep 0.030;
+		} forEach (toArray _full);
+	};
+};
 
 private _start = time;
 private _switched = false;

@@ -53,19 +53,15 @@ titleCut["","BLACK OUT",1];
 if !(CTI_P_Jailed && _killed ==_killer ) then {[_killed, _killer, CTI_P_SideID] spawn CTI_CO_FNC_OnUnitKilled};
 
 waitUntil {alive player};
-// hideobject _killed перенесён в svb_fnc_deathCam — труп должен быть виден все 5 секунд камеры
+// hideobject _killed перенесён в svb_fnc_deathCam — труп должен быть виден все время камеры
 
 // === ОЧИСТКА СЕТЕВЫХ ПЕРЕМЕННЫХ ПОСЛЕ РЕСПАВНА ===
-// Сбрасываем сетевое состояние в валидные значения.
-// ВАЖНО: нельзя ставить nil, иначе AN_Reconfigure выходит по isNil {AN_iNet}
-// и сеть не восстанавливается. Ставим -1 / objNull / [] — это "нет сети",
-// но валидное состояние, которое AN_Reconfigure обработает и найдёт ретранслятор.
 player setVariable ["AN_iNet", -1, true];
 player setVariable ["AN_Conn", objNull, true];
 player setVariable ["AN_Parrents", [], true];
 player setVariable ["CTI_Net", (side player) call CTI_CO_FNC_GetSideID, true];
-player setVariable ["AN_updHandle", nil, false];  // локально, handle не networked
-player setVariable ["AN_recHandle", nil, false];  // локально, handle не networked
+player setVariable ["AN_updHandle", nil, false];
+player setVariable ["AN_recHandle", nil, false];
 
 CTI_DeathTimer = time + (missionNamespace getVariable "CTI_RESPAWN_TIMER");
 
@@ -75,12 +71,12 @@ call CTI_CL_FNC_AddMissionActions;
 if (! (isPlayer (leader(group player))) && !(CTI_P_SideJoined == resistance)) then {(group player) selectLeader player};
 
 if !( missionNamespace getVariable ["TUTO_COMPLETE",false]) then {
-	hideObject _killed; // в туториале камеры нет — прячем труп сразу, как раньше
+	hideObject _killed;
 	titleCut["","BLACK IN",1];
 	12452 cutText [localize "STR_Begin_Tutorial", "BLACK IN", 5];
 	0 call TUTORIAL_RUN;
 } else {
 	createDialog "CTI_RscRespawnMenu";
-	//--- Камера смерти: 5 сек (труп -> убийца), поверх неё меню респавна
+	//--- Камера смерти: запускается ПОСЛЕ создания дисплея
 	[_killed, _killer, _instigator] spawn svb_fnc_deathCam;
 };

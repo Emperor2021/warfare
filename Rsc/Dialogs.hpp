@@ -3227,6 +3227,26 @@ class CTI_RscRespawnMenu {
 
 			size = "0.9 * (			(			(			((safezoneW / safezoneH) min 1.2) / 1.2) / 25) * 1)";
 		};
+	
+			
+		// Печатная машинка: имя убийцы сверху по центру (idc 120004, в меню не занят)
+		class CTI_Menu_KillText : RscStructuredText {
+			idc = 120004;
+
+			x = "SafeZoneX + (SafeZoneW * 0.10)";
+			y = "SafeZoneY + (SafezoneH * 0.06)";
+			w = "SafeZoneW * 0.80";
+			h = "SafeZoneH * 0.12";
+
+			size = "2.2 * (			(			(			((safezoneW / safezoneH) min 1.2) / 1.2) / 25) * 1)";
+			text = "";
+			colorText[] = {1,1,1,1};
+
+			class Attributes {
+				font = "PuristaBold";
+				align = "center";
+				};
+	  		};
 	};
 };
 

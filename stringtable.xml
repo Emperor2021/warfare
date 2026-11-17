@@ -3395,5 +3395,9 @@
             <Original>(%1 s)</Original>
             <Russian>(%1 с)</Russian>
         </Key>
+				<Key ID="STR_SVB_DeathCam_KillLine">
+            <Original>YOU GOT KILLED AND OWNED BY: %1</Original>
+            <Russian>ТЕБЯ УБИЛ И ОБОСАЛ: %1</Russian>
+        </Key>
     </Package>
 </Project>
