@@ -27,22 +27,17 @@
 	  -> This function be triggered everytime the player dies
 */
 
-private ["_killed", "_killer"];
+private ["_killed", "_killer", "_instigator"];
 
 _killed = _this select 0;
 _killer = _this select 1;
+// instigator пришёл из Killed EH (водитель/стрелок), может отсутствовать
+_instigator = if (count _this > 2) then { _this select 2 } else { objNull };
 
 _killed connectTerminalToUAV objNull;
 
 CTI_DeathPosition = getPos _killed;
 CTI_P_LastDeathTime=time;
-
-/*
-if !(isNil "CTI_DeathCamera") then {
-	CTI_DeathCamera cameraEffect ["TERMINATE", "BACK"];
-	camDestroy CTI_DeathCamera;
-};*/
-
 
 //--- Close dialogs if needed (check 2 times).
 if (dialog) then {closeDialog 0};
@@ -57,9 +52,8 @@ titleCut["","BLACK OUT",1];
 
 if !(CTI_P_Jailed && _killed ==_killer ) then {[_killed, _killer, CTI_P_SideID] spawn CTI_CO_FNC_OnUnitKilled};
 
-
 waitUntil {alive player};
-hideobject _killed;
+// hideobject _killed перенесён в svb_fnc_deathCam — труп должен быть виден все 5 секунд камеры
 
 // === ОЧИСТКА СЕТЕВЫХ ПЕРЕМЕННЫХ ПОСЛЕ РЕСПАВНА ===
 // Сбрасываем сетевое состояние в валидные значения.
@@ -75,41 +69,18 @@ player setVariable ["AN_recHandle", nil, false];  // локально, handle н
 
 CTI_DeathTimer = time + (missionNamespace getVariable "CTI_RESPAWN_TIMER");
 
-/*
-if (CTI_P_Jailed) exitWith {
-	600 spawn CTI_CL_FNC_OnJailed
-};
-*/
-
-CTI_DeathTimer = time + (missionNamespace getVariable "CTI_RESPAWN_TIMER");
-
 call CTI_CL_FNC_AddMissionActions;
-
 
 //--- Make sure that player is always the leader (of his group).
 if (! (isPlayer (leader(group player))) && !(CTI_P_SideJoined == resistance)) then {(group player) selectLeader player};
 
 if !( missionNamespace getVariable ["TUTO_COMPLETE",false]) then {
+	hideObject _killed; // в туториале камеры нет — прячем труп сразу, как раньше
 	titleCut["","BLACK IN",1];
 	12452 cutText [localize "STR_Begin_Tutorial", "BLACK IN", 5];
 	0 call TUTORIAL_RUN;
 } else {
 	createDialog "CTI_RscRespawnMenu";
+	//--- Камера смерти: 5 сек (труп -> убийца), поверх неё меню респавна
+	[_killed, _killer, _instigator] spawn svb_fnc_deathCam;
 };
-/*
-titleCut["","BLACK IN",1];
-
-CTI_DeathCamera = "camera" camCreate CTI_DeathPosition;
-// CTI_DeathCamera camSetDir 0;
-CTI_DeathCamera camSetFov 0.7;
-CTI_DeathCamera cameraEffect["Internal","TOP"];
-
-CTI_DeathCamera camSetTarget CTI_DeathPosition;
-CTI_DeathCamera camSetRelPos [0,1,3];
-CTI_DeathCamera camCommit 0;
-
-waitUntil {camCommitted CTI_DeathCamera};
-
-CTI_DeathCamera camSetRelPos [1,1,20];
-CTI_DeathCamera camCommit (missionNamespace getVariable "CTI_RESPAWN_TIMER")+2;
-*/

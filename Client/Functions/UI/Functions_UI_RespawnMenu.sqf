@@ -21,7 +21,7 @@ CTI_UI_Respawn_GetAvailableLocations = {
 			_sid = (CTI_P_SideJoined)  call CTI_CO_FNC_GetSideID;
 			_c_towns = ( _sid )  call CTI_CO_FNC_GetSideTowns;
 			_posible =[];
-			{if ((_x  getVariable "cti_town_capture") == CTI_TOWNS_CAPTURE_VALUE_CEIL) then{ _posible set [count _posible,_x]};} count _c_towns;
+			{if ((_x  getVariable "cti_town_capture") == CTI_TOWNS_CAPTURE_VALUE_CEIL) then{ _posible set [count _posible,_x];};} count _c_towns;
 
 			_t = [CTI_DeathPosition, _posible ] call CTI_CO_FNC_GetClosestEntity;
 			if (! (isNull _t) ) then {_towns pushBack _t;};
@@ -55,8 +55,8 @@ CTI_UI_Respawn_GetAvailableLocations = {
 CTI_UI_Respawn_GetMobileRespawn = {
 	private ["_available", "_center"];
 	_center = _this;
-  _up=if (!( count ((CTI_P_SideJoined) call CTI_CO_FNC_GetSideUpgrades) == 0)) then {((CTI_P_SideJoined) call CTI_CO_FNC_GetSideUpgrades) select CTI_UPGRADE_REST} else {0};
-  _range=500+500*_up;
+	_up=if (!( count ((CTI_P_SideJoined) call CTI_CO_FNC_GetSideUpgrades) == 0)) then {((CTI_P_SideJoined) call CTI_CO_FNC_GetSideUpgrades) select CTI_UPGRADE_REST} else {0};
+	_range=500+500*_up;
 	_available = [];
 
 	{
@@ -66,57 +66,42 @@ CTI_UI_Respawn_GetMobileRespawn = {
 };
 
 CTI_UI_Respawn_GetListLabels = {
-	private ["_emplacements", "_hq", "_list"];
-
+	private ["_emplacements", "_list", "_timeLabel"];
 	_emplacements = _this;
-
 	_list = [];
-	_hq = (CTI_P_SideJoined) call CTI_CO_FNC_GetSideHQ;
-
 	{
-		_list = _list + [format["%1 - %2 (%3 s)", _x call CTI_UI_Respawn_GetRespawnLabel, _x call CTI_UI_Respawn_GetLocationInformation,floor((CTI_P_LastDeathTime+ (_x call CTI_UI_Respawn_GetTime)-time) max 0) ]];
+		_timeLabel = format [localize "STR_SVB_Respawn_TimeFormat", floor((CTI_P_LastDeathTime + (_x call CTI_UI_Respawn_GetTime) - time) max 0)];
+		_list pushBack format ["%1 - %2 %3", _x call CTI_UI_Respawn_GetRespawnLabel, _x call CTI_UI_Respawn_GetLocationInformation, _timeLabel];
 	} forEach _emplacements;
-
 	_list
 };
 
 CTI_UI_Respawn_GetRespawnLabel = {
-	private ["_location", "_value"];
+	private ["_location", "_value", "_var"];
 	_location = _this;
-
-	_value = "Structure";
+	_value = localize "STR_SVB_Respawn_Structure";
 	switch (true) do {
-		case (_location in CTI_Towns): {_value=_location getVariable "cti_town_name"};
-		case (_location == (CTI_P_SideJoined call CTI_CO_FNC_GetSideHQ)): { _value = "Headquarters"	};
+		case (_location in CTI_Towns): {_value = _location getVariable "cti_town_name"};
+		case (_location == (CTI_P_SideJoined call CTI_CO_FNC_GetSideHQ)): {_value = localize "STR_SVB_Respawn_HQ"};
 		case (!isNil {_location getVariable "cti_structure_type"}): {
 			_var = missionNamespace getVariable format ["CTI_%1_%2", CTI_P_SideJoined, _location getVariable "cti_structure_type"];
 			_value = (_var select 0) select 1;
 		};
-		case (_location == (leader group player)) : {_value=format ["[LEADER] %1",name _location]};
-		case (_location isKindOf "AllVehicles"&& !(_location == (leader group player))): { _value = getText(configFile >> "CfgVehicles" >> typeOf _location >> "displayName") };
+		case (_location == (leader group player)): {_value = format [localize "STR_SVB_Respawn_Leader", name _location]};
+		case (_location isKindOf "AllVehicles" && !(_location == (leader group player))): {_value = getText(configFile >> "CfgVehicles" >> typeOf _location >> "displayName")};
 	};
-
 	_value
 };
 
 CTI_UI_Respawn_GetLocationInformation = {
-	private ["_closest", "_direction", "_direction_eff", "_distance", "_distance_near", "_format", "_location"];
-
+	private ["_closest", "_distance", "_distance_near", "_location"];
 	_location = _this;
 	if (_location in CTI_Towns) exitWith {""};
-	_format = "";
-
 	_closest = (_location) call CTI_CO_FNC_GetClosestTown;
-	_direction = [_closest, _location] call CTI_CO_FNC_GetDirTo;
-	if (_direction < 0) then { _direction = _direction + 360};
-
-	_direction_eff = ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"];
-	_direction_eff = _direction_eff select round((_direction + 22.5)/45);
-
 	_distance = _closest distance _location;
 	_distance_near = _distance - (_distance % 100);
-
-	format ["%1 %2 %3",_closest getVariable "cti_town_name", _direction_eff, _distance_near]
+	// Без компасной буквы: только город и дистанция
+	format ["%1 %2", _closest getVariable "cti_town_name", _distance_near];
 };
 
 CTI_UI_Respawn_AppendTracker = {
@@ -152,7 +137,7 @@ CTI_UI_Respawn_AppendTracker = {
 };
 
 CTI_UI_Respawn_LoadLocations = {
-	private ["_old_locations", "_respawn_locations", "_respawn_locations_formated", "_set", "_spawn"];
+	private ["_old_locations", "_respawn_locations", "_respawn_locations_formated", "_set", "_spawn", "_sideColor", "_leader"];
 	_respawn_locations = call CTI_UI_Respawn_GetAvailableLocations;
 	_leader= if (!((leader group player) == player) && isPlayer (leader group player)&& (missionNamespace getVariable "CTI_GROUP_LEADER_RESP") == 1 && ((leader group player) distance (getMarkerPos "prison")) >500 && ((leader group player) distance (getMarkerPos format ["CTI_%1Respawn",side (group player)])) >2000 ) then {[leader group player]} else {[]};
 	_respawn_locations =_leader + ([CTI_DeathPosition, _respawn_locations] call CTI_CO_FNC_SortByDistance);
@@ -164,11 +149,18 @@ CTI_UI_Respawn_LoadLocations = {
 
 	{if !(_x in _old_locations) then {(_x) call CTI_UI_Respawn_AppendTracker}} forEach _respawn_locations;
 
+	// Цвет строк по стороне игрока: WEST синий, EAST красный, GUER зелёный
+	_sideColor = switch (CTI_P_SideJoined) do {
+		case west: {[0.25, 0.5, 1, 1]};
+		case east: {[1, 0.3, 0.3, 1]};
+		default {[0.3, 0.8, 0.3, 1]};
+	};
+
 	lbClear ((uiNamespace getVariable "cti_dialog_ui_respawnmenu") displayCtrl 120002);
 
 	{
 		((uiNamespace getVariable "cti_dialog_ui_respawnmenu") displayCtrl 120002) lbAdd _x;
-		// ((uiNamespace getVariable "cti_dialog_ui_respawnmenu") displayCtrl 120002) lbSetValue [_forEachIndex, _forEachIndex];
+		((uiNamespace getVariable "cti_dialog_ui_respawnmenu") displayCtrl 120002) lbSetColor [_forEachIndex, _sideColor];
 	} forEach _respawn_locations_formated;
 
 	//--- Is a spawn currently selected?
@@ -271,15 +263,6 @@ CTI_UI_Respawn_OnRespawnReady = {
 		} forEach (units player call CTI_CO_FNC_GetLiveUnits);
 		CTI_REDEPLOY=false;
 	};
-/*	if !(_respawn_ai) then { //--- Stock respawn
-		[player, missionNamespace getVariable format ["CTI_AI_%1_DEFAULT_GEAR", CTI_P_SideJoined]] call CTI_CO_FNC_EquipUnit; //--- Equip the default equipment
-	} else { //--- Respawn in own AI
-		[player, _respawn_ai_gear] call CTI_CO_FNC_EquipUnit; //--- Equip the equipment of the AI on the player
-	};
-
-	if ((missionNamespace getVariable "CTI_UNITS_FATIGUE") == 0) then {player enableFatigue false}; //--- Disable the unit's fatigue
-	CTI_P_Respawning = false;
-};*/
 	if !(_respawn_ai) then { //--- Stock respawn
 		// --- zerty edit
 		if  (!isNil {CTI_P_LastPurchase } &&  (CTI_PLAYER_REEQUIP >= 1 ) ) then {
@@ -287,7 +270,6 @@ CTI_UI_Respawn_OnRespawnReady = {
 		} else {
 			[player, missionNamespace getVariable format ["CTI_AI_%1_DEFAULT_GEAR", CTI_P_SideJoined]] call CTI_CO_FNC_EquipUnit; //--- Equip pure clients
 		};
-		//[player, missionNamespace getVariable format ["CTI_AI_%1_DEFAULT_GEAR", CTI_P_SideJoined]] call CTI_CO_FNC_EquipUnit; //--- Equip the default equipment
 	} else { //--- Respawn in own AI
 		// --- zerty edit
 		if  (!isNil {CTI_P_LastPurchase } &&  (CTI_PLAYER_REEQUIP >= 1 ) ) then {

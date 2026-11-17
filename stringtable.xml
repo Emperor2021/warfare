@@ -3374,4 +3374,26 @@
             <Russian>Морская точка появления</Russian>
         </Key>
     </Package>
+						<Package name="RespawnMenu">
+        <Key ID="STR_SVB_Respawn_MapTitle">
+            <Original>Location Map</Original>
+            <Russian>Карта локаций</Russian>
+        </Key>
+				<Key ID="STR_SVB_Respawn_HQ">
+            <Original>Headquarters (MHQ)</Original>
+            <Russian>КШМ (командно-штабная машина)</Russian>
+        </Key>
+        <Key ID="STR_SVB_Respawn_Structure">
+            <Original>Structure</Original>
+            <Russian>Строение</Russian>
+        </Key>
+        <Key ID="STR_SVB_Respawn_Leader">
+            <Original>[LEADER] %1</Original>
+            <Russian>[КОМАНДИР] %1</Russian>
+        </Key>
+        <Key ID="STR_SVB_Respawn_TimeFormat">
+            <Original>(%1 s)</Original>
+            <Russian>(%1 с)</Russian>
+        </Key>
+    </Package>
 </Project>

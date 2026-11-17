@@ -3112,67 +3112,73 @@ class CTI_RscRespawnMenu {
 	onUnload = "uiNamespace setVariable ['cti_dialog_ui_respawnmenu', nil]; ['onUnload'] call compile preprocessFileLineNumbers 'Client\Events\Events_UI_RespawnMenu.sqf'";
 
 	class controlsBackground {
+		// Единая ПРАВАЯ панель, ширина 25% экрана
 		class CTI_Background : RscText {
-			x = "SafeZoneX + (SafeZoneW * 0.15)";
-			y = "SafeZoneY + (SafezoneH * 0.15)";
-			w = "SafeZoneW * 0.7";
-			h = "SafeZoneH * 0.7";
+			x = "SafeZoneX + (SafeZoneW * 0.73)";
+			y = "SafeZoneY + (SafezoneH * 0.03)";
+			w = "SafeZoneW * 0.25";
+			h = "SafeZoneH * 0.94";
 			colorBackground[] = {0, 0, 0, 0.7};
 			moving = 1;
 		};
 		class CTI_Background_Header : CTI_Background {
-			x = "SafeZoneX + (SafeZoneW * 0.15)";
-			y = "SafeZoneY + (SafezoneH * 0.15)";
-			w = "SafeZoneW * 0.7";
-			h = "SafeZoneH * 0.05"; //0.06 stock
+			x = "SafeZoneX + (SafeZoneW * 0.73)";
+			y = "SafeZoneY + (SafezoneH * 0.03)";
+			w = "SafeZoneW * 0.25";
+			h = "SafeZoneH * 0.05";
 			colorBackground[] = {0, 0, 0, 0.4};
 		};
+		// Заголовок блока: "Карта локаций" / "Location Map"
 		class CTI_Menu_Title : RscText {
 			style = ST_LEFT;
-			x = "SafeZoneX + (SafeZoneW * 0.17)";
-			y = "SafeZoneY + (SafezoneH * 0.155)";
-			w = "SafeZoneW * 0.68";
-			h = "SafeZoneH * 0.037";
+			x = "SafeZoneX + (SafeZoneW * 0.74)";
+			y = "SafeZoneY + (SafezoneH * 0.035)";
+			w = "SafeZoneW * 0.23";
+			h = "SafeZoneH * 0.04";
 
-			text = $STR_Menu_Title_Respawn;
+			text = $STR_SVB_Respawn_MapTitle;
 			colorText[] = {0.258823529, 0.713725490, 1, 1};
 
 			sizeEx = "(			(			(			((safezoneW / safezoneH) min 1.2) / 1.2) / 25) * 1)";
 		};
 
+		// Карта локаций (под заголовком)
 		class CTI_Menu_MapFrame : RscFrame {
-			x = "SafeZoneX + (SafeZoneW * 0.16)";
-			y = "SafeZoneY + (SafezoneH * 0.21)";
-			w = "SafeZoneW * 0.40";
-			h = "SafeZoneH * 0.58";
+			x = "SafeZoneX + (SafeZoneW * 0.74)";
+			y = "SafeZoneY + (SafezoneH * 0.09)";
+			w = "SafeZoneW * 0.23";
+			h = "SafeZoneH * 0.34";
 		};
+		// Таймер внизу панели
 		class CTI_Menu_InfoFrame : CTI_Menu_MapFrame {
-			y = "SafeZoneY + (SafezoneH * 0.8)";
-			w = "SafeZoneW * 0.40";
-			h = "SafeZoneH * 0.04";
+			y = "SafeZoneY + (SafezoneH * 0.915)";
+			w = "SafeZoneW * 0.23";
+			h = "SafeZoneH * 0.045";
 		};
-		class CTI_Menu_ListLabelFrame : CTI_Menu_MapFrame {
-			x = "SafeZoneX + (SafeZoneW * 0.57)";
-			w = "SafeZoneW * 0.27";
+		// Подзаголовок списка: "Доступные локации"
+		class CTI_Menu_ListLabelFrame : RscFrame {
+			x = "SafeZoneX + (SafeZoneW * 0.74)";
+			y = "SafeZoneY + (SafezoneH * 0.44)";
+			w = "SafeZoneW * 0.23";
 			h = "SafeZoneH * 0.04";
 		};
 		class CTI_Menu_ListFrame : CTI_Menu_ListLabelFrame {
-			y = "SafeZoneY + (SafezoneH * 0.26)";
-			h = "SafeZoneH * 0.58";
+			y = "SafeZoneY + (SafezoneH * 0.485)";
+			h = "SafeZoneH * 0.42";
 		};
 		class CTI_Menu_ListInfo_Background : RscText {
-			x = "SafeZoneX + (SafeZoneW * 0.57)";
-			y = "SafeZoneY + (SafezoneH * 0.21)";
-			w = "SafeZoneW * 0.27";
+			x = "SafeZoneX + (SafeZoneW * 0.74)";
+			y = "SafeZoneY + (SafezoneH * 0.44)";
+			w = "SafeZoneW * 0.23";
 			h = "SafeZoneH * 0.04";
 			colorBackground[] = {0.5, 0.5, 0.5, 0.25};
 		};
 		class CTI_Menu_ListInfo_Text : RscText {
 			style = ST_CENTER;
 
-			x = "SafeZoneX + (SafeZoneW * 0.57)";
-			y = "SafeZoneY + (SafezoneH * 0.21)";
-			w = "SafeZoneW * 0.27";
+			x = "SafeZoneX + (SafeZoneW * 0.74)";
+			y = "SafeZoneY + (SafezoneH * 0.44)";
+			w = "SafeZoneW * 0.23";
 			h = "SafeZoneH * 0.04";
 
 			text = $STR_Menu_ListInfo_Text;
@@ -3184,10 +3190,10 @@ class CTI_RscRespawnMenu {
 		class CTI_Menu_Map : RscMapControl {
 			idc = 120001;
 
-			x = "SafeZoneX + (SafeZoneW * 0.16)";
-			y = "SafeZoneY + (SafezoneH * 0.21)";
-			w = "SafeZoneW * 0.40";
-			h = "SafeZoneH * 0.58";
+			x = "SafeZoneX + (SafeZoneW * 0.74)";
+			y = "SafeZoneY + (SafezoneH * 0.09)";
+			w = "SafeZoneW * 0.23";
+			h = "SafeZoneH * 0.34";
 
 			showCountourInterval = 1;
 
@@ -3197,11 +3203,11 @@ class CTI_RscRespawnMenu {
 		};
 		class CTI_Menu_Control_LocationList : RscListBox {
 			idc = 120002;
-
-			x = "SafeZoneX + (SafeZoneW * 0.57)";
-			w = "SafeZoneW * 0.27";
-			y = "SafeZoneY + (SafezoneH * 0.26)";
-			h = "SafeZoneH * 0.58";
+			
+			x = "SafeZoneX + (SafeZoneW * 0.74)";
+			w = "SafeZoneW * 0.23";
+			y = "SafeZoneY + (SafezoneH * 0.485)";
+			h = "SafeZoneH * 0.42";
 
 			rowHeight = "1.5 * 			(			(			((safezoneW / safezoneH) min 1.2) / 1.2) / 25)";
 			sizeEx = "0.78 * 			(			(			((safezoneW / safezoneH) min 1.2) / 1.2) / 25)";
@@ -3210,21 +3216,19 @@ class CTI_RscRespawnMenu {
 			colorBackground[] = {0,0,0,0};
 
 			onLBSelChanged = "['onSpawnLBSelChanged', _this select 1] call compile preprocessFileLineNumbers 'Client\Events\Events_UI_RespawnMenu.sqf'";
-			// onLBDblClick = "['onBuildStructureLBDblClick', _this select 1] call compile preprocessFileLineNumbers 'Client\Events\Events_UI_BuildMenu.sqf'";
 		};
 		class CTI_Menu_Respawn_Info : RscStructuredText {
 			idc = 120003;
 
-			x = "SafeZoneX + (SafeZoneW * 0.16)";
-			y = "SafeZoneY + (SafezoneH * 0.805)";
-			w = "SafeZoneW * 0.40";
-			h = "SafeZoneH * 0.035";
+			x = "SafeZoneX + (SafeZoneW * 0.74)";
+			y = "SafeZoneY + (SafezoneH * 0.915)";
+			w = "SafeZoneW * 0.23";
+			h = "SafeZoneH * 0.045";
 
 			size = "0.9 * (			(			(			((safezoneW / safezoneH) min 1.2) / 1.2) / 25) * 1)";
 		};
 	};
 };
-
 
 class CTI_RscSatelitteCamera {
 	movingEnable = 0;

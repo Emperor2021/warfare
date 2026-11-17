@@ -125,7 +125,7 @@ class Params {
 //		texts[] = {"25 Seconds","30 Seconds","35 Seconds","40 Seconds","45 Seconds"};
 		values[] = {5,10,15,30};
 		texts[] = {"30 Seconds"};
-		default = 5;
+		default = 15; // возраждение при смерти 
 	};
 	class CTI_TOWNS_OCCUPATION {
 		title = $STR_CTI_TOWNS_OCCUPATION;
