@@ -123,9 +123,9 @@ class Params {
 		title = $STR_CTI_RESPAWN_TIMER;
 //		values[] = {25,30,35,40,45};
 //		texts[] = {"25 Seconds","30 Seconds","35 Seconds","40 Seconds","45 Seconds"};
-		values[] = {5,10,15,30};
+		values[] = {5,10,15,20,30};
 		texts[] = {"30 Seconds"};
-		default = 15; // возраждение при смерти 
+		default = 20; // возраждение при смерти 
 	};
 	class CTI_TOWNS_OCCUPATION {
 		title = $STR_CTI_TOWNS_OCCUPATION;

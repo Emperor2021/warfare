@@ -1,10 +1,9 @@
 /*
 	svb_fnc_deathCam — камера смерти (только клиент).
-	Камера живёт до респауна, но не меньше 10 секунд:
-	сначала труп (статика), затем убийца — камера следует за ним
-	и СМОТРИТ НА НЕГО (camSetTarget), плавно (camSetRelPos+camCommit).
-	БЕЗ attachTo (он наследует курс юнита и ломает взгляд на цель).
-	Суицид/краш/objNull — только труп.
+	Фаза 1 ("дух"): камера плавно поднимается от трупа вверх и смотрит на него вниз
+		(эффект "дух выходит из тела и уходит в небеса"), длительность _riseTime.
+	Фаза 2: если есть убийца и время ещё есть — камера следует за ним и смотрит на него.
+	Суицид/краш/objNull — только фаза "духа".
 	Труп виден всё время работы камеры (hideObject в самом конце).
 	Вызов: [_killed, _killer, _instigator] spawn svb_fnc_deathCam;
 	Использует существующую CTI_DeathCamera — её cleanup уже встроен
@@ -28,11 +27,13 @@ if (!isNil "CTI_DeathCamera" && {!isNull CTI_DeathCamera}) then {
 	CTI_DeathCamera = nil;
 };
 
-private _minDuration = 10;   // минимум секунд камеры и видимости трупа
-private _corpsePhase = 5;    // сколько смотрим на труп до перехода на убийцу
-private _followDist = 10;    // насколько камера сзади убийцы, м
-private _followHeight = 15;  // высота камеры над убийцей, м
-private _tick = 0.1;         // шаг цикла следования (10 Гц, camCommit интерполирует)
+private _minDuration  = 10;   // минимум секунд камеры и видимости трупа
+private _riseTime     = 10;   // сколько секунд камера поднимается вверх ("дух")
+private _riseHeight   = 30;   // на какую высоту поднимаемся над трупом, м
+private _corpsePhase  = _riseTime; // фаза трупа/духа = весь подъём; убийца — после подъёма
+private _followDist   = 20;   // насколько камера сзади убийцы, м
+private _followHeight = 10;   // высота камеры над убийцей, м
+private _tick         = 0.1;  // шаг цикла следования (10 Гц, camCommit интерполирует)
 
 // Кто виноват: instigator важнее killer (водитель/стрелок техники)
 private _culprit = if (!isNull _instigator) then { _instigator } else { _killer };
@@ -52,15 +53,22 @@ private _corpseFocus = [_killed] call _fnc_focus;
 // Локальная ссылка на камеру (глобал мог уже уничтожить OnRespawnReady)
 private _cam = "camera" camCreate (_corpseFocus modelToWorldVisual [0, -3, 1.6]);
 CTI_DeathCamera = _cam;
-// Фаза трупа: статично смотрим на труп явным вектором
-private _toCorpse = (getPosASL _corpseFocus) vectorDiff (getPosASL _cam);
-_cam setVectorDirAndUp [_toCorpse, [0,0,1]];
+
+// Фаза "духа": смотрим НА труп и одним длинным camCommit плавно поднимаемся вверх.
+// Движок сам интерполирует подъём — гладко, без ручного цикла и без дёрганья.
+_cam camSetTarget _corpseFocus;                                   // взгляд вниз на тело держится весь подъём
+_cam camSetPos (_corpseFocus modelToWorldVisual [0, -3, 1.6]);    // старт: низко за трупом
+_cam camCommit 0;
+_cam camSetPos (_corpseFocus modelToWorldVisual [0, -2, _riseHeight]); // финиш: высоко над трупом
+_cam camCommit _riseTime;                                         // плавный подъём за _riseTime сек
+
 _cam camSetFov 0.7;
 _cam cameraEffect ["INTERNAL", "BACK"];
 showCinemaBorder false;
 
 // Проявляем картинку поверх камеры (BLACK OUT был в OnPlayerKilled)
 titleCut ["", "BLACK IN", 1];
+
 //--- Печатная машинка: имя убийцы сверху по центру (только если есть убийца)
 if (_showKiller) then {
 	[_culprit] spawn {
@@ -93,7 +101,7 @@ if (_showKiller) then {
 			if (isNull _disp) exitWith {}; // меню закрыли (респаун) — выходим
 			_shown = _shown + toString [_x];
 			_ctrl ctrlSetStructuredText parseText format ["<t align='center' color='%1'>%2</t>", _colorHex, _shown];
-			uiSleep 0.030;
+			uiSleep 0.045;
 		} forEach (toArray _full);
 	};
 };
@@ -109,12 +117,12 @@ while {(time - _start < _minDuration) || {time < (missionNamespace getVariable [
 
 	if (!_switched && {time - _start >= _corpsePhase}) then { _switched = true; };
 
-	// После перехода: следуем за убийцей и СМОТРИМ НА НЕГО, плавно
+	// После подъёма: следуем за убийцей и СМОТРИМ НА НЕГО, плавно
 	if (_switched && _showKiller && {!isNull _culprit}) then {
 		private _killerFocus = [_culprit] call _fnc_focus;
-		_cam camSetTarget _killerFocus;                      // взгляд НА цель (постоянный трекинг)
-		_cam camSetRelPos [0, -_followDist, _followHeight];  // позиция сзади-сверху относительно цели
-		_cam camCommit _tick;                               // интерполяция = плавно, без снапов
+		_cam camSetTarget _killerFocus;
+		_cam camSetRelPos [0, -_followDist, _followHeight];
+		_cam camCommit _tick;
 	};
 
 	uiSleep _tick;
@@ -130,5 +138,5 @@ if (!isNil "CTI_DeathCamera" && {CTI_DeathCamera isEqualTo _cam}) then {
 	CTI_DeathCamera = nil;
 };
 
-// Прячем труп только теперь — он лежал всё время работы камеры (>=10 сек)
+// Прячем труп только теперь — он лежал всё время работы камеры
 if (!isNull _killed) then { hideObject _killed };
