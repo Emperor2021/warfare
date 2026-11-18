@@ -147,13 +147,69 @@ if (count _vehiclesToSpawn > 0) then {
         private _vehicleName = getText (configFile >> "CfgVehicles" >> _currentVehClass >> "displayName");
         if (_vehicleName == "") then { _vehicleName = _currentVehClass; };
 
-        player groupChat format [localize "STR_CTI_RequestingVehicle_Custom", _vehicleName];
+                player groupChat format [localize "STR_CTI_RequestingVehicle_Custom", _vehicleName];
         sleep 1;
 
-        private _spawnPos = [getPos player, 15, 50, 7, 0, 0.3, 0] call BIS_fnc_findSafePos;
-        if (count _spawnPos == 2) then { _spawnPos pushBack 0; }; 
-        
+        // === ПОИСК СВОБОДНОЙ ПОЗИЦИИ ИСКЛЮЧИТЕЛЬНО НА ДОРОГЕ ===
+        // Причина: база в городе, плотная застройка. findSafePos меряет зазор до ЦЕНТРА объекта,
+        // из-за чего техника встаёт в здания/вплотную к соседям -> пенетрация геометрии -> взрыв.
+        // Радиус 200м, при отсутствии свободного места +200м (до 1000м).
+        private _spawnPos = [];
         private _spawnDir = getDir player;
+        private _center = getPos player;
+
+        for "_radius" from 200 to 1000 step 200 do {
+            if !(_spawnPos isEqualTo []) exitWith {};
+
+            private _roads = _center nearRoads _radius;
+            if (count _roads == 0) then { continue };
+
+            // Перемешиваем, чтобы 4 машины не встали в одну точку.
+            // Лимит 60 сегментов на радиус — защита от тяжёлого перебора в городе.
+            _roads = _roads call BIS_fnc_arrayShuffle;
+            if (count _roads > 60) then { _roads resize 60 };
+
+            {
+                private _road = _x;
+                if (isNull _road) then { continue };
+                private _rPos = getPos _road;
+
+                // Только дорожное полотно и только суша
+                if !(isOnRoad _rPos) then { continue };
+                if (surfaceIsWater _rPos) then { continue };
+
+                // findEmptyPosition учитывает габариты класса техники и здания.
+                // Радиус 3м — чтобы не уехать с полотна; результат перепроверяем isOnRoad.
+                private _p = _rPos findEmptyPosition [0, 3, _currentVehClass];
+                if (_p isEqualTo []) then { continue };
+                if !(isOnRoad _p) then { continue };
+
+                // "На дороге никого нет" — паттерн проверок из svb_fnc_isSpawnPointFree
+                if ({alive _x} count (_p nearEntities ["Man", 6]) > 0) then { continue };
+                private _blockers = (_p nearEntities ["All", 12]) select {
+                    alive _x && {
+                        _x isKindOf "LandVehicle" || {_x isKindOf "Air"} || {_x isKindOf "Ship"} ||
+                        {_x isKindOf "StaticWeapon"} || {_x isKindOf "AmmoBox"}
+                    }
+                };
+                if (count _blockers > 0) then { continue };
+
+                // Точка свободна. Направление — ВДОЛЬ дороги, иначе танк встанет поперёк улицы.
+                _spawnPos = _p;
+                private _connected = roadsConnectedTo _road;
+                if (count _connected > 0) then {
+                    _spawnDir = _road getDir (_connected select 0);
+                };
+                if (true) exitWith {};
+            } forEach _roads;
+        };
+
+        if (_spawnPos isEqualTo []) then {
+            diag_log format ["[BECTI] InitPlayerBots: свободной дороги в радиусе 1000м не найдено для %1, спавн отменён", _currentVehClass];
+            player groupChat format [localize "STR_CTI_ERROR", _vehicleName];
+            continue;
+        };
+        if (count _spawnPos == 2) then { _spawnPos pushBack 0 };
 
         // === СОЗДАНИЕ ТЕХНИКИ ЧЕРЕЗ ОФИЦИАЛЬНУЮ ФУНКЦИЮ BECTI ===
         // Параметры: CLASSNAME, POSITION, DIRECTION, SIDE, LOCKED, PUBLIC, HANDLED, SPECIAL
@@ -166,6 +222,14 @@ if (count _vehiclesToSpawn > 0) then {
             sleep 1;
             continue;
         };
+
+        // === ФИКСАЦИЯ ТЕХНИКИ НА НАЙДЕННОЙ ТОЧКЕ ДОРОГИ ===
+        // CTI_CO_FNC_CreateVehicle создаёт через createVehicle [..., 7, "FORM"]:
+        // placement radius 7 сдвигает машину до 7м, FORM роняет её с 1м.
+        // Без фиксации техника уедет с дороги обратно в застройку — весь поиск насмарку.
+        _veh setPosATL _spawnPos;
+        _veh setDir _spawnDir;
+        _veh setVelocity [0,0,0];
 
         // === v_keys ДЛЯ ОТОБРАЖЕНИЯ ИКОНОК В 3D ===
        _veh setVariable ["v_keys", [getPlayerUID player, group player], true];
