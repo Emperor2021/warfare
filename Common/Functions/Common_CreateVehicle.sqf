@@ -190,11 +190,13 @@ if ( _type isKindOf "Air"  && (missionNamespace getVariable "CTI_AC_ENABLED")>0 
 };
 
 if ((missionNamespace getVariable [format ["%1", typeOf _vehicle],["","","","","","","",""]]) select 7 != "") then {
-	_side_logic=(_side call CTI_CO_FNC_GetSideFromID) call CTI_CO_FNC_GetSideLogic;
-	_current=_side_logic getVariable ["cti_service", []];
-	_current=_current -[objNull];
-	_current set [count _current,_vehicle];
-	_side_logic setVariable ["cti_service", _current,true];
+	_side_logic = (_side call CTI_CO_FNC_GetSideFromID) call CTI_CO_FNC_GetSideLogic;
+	_current = _side_logic getVariable ["cti_service", []];
+	_current = _current - [objNull];
+	_current set [count _current, _vehicle];
+	_side_logic setVariable ["cti_service", _current, true];
+	// Сервисная техника и контейнеры не удаляются и не входят в лимит 200
+	_vehicle setVariable ["svb_service_nocleanup", true, true];
 };
 
 

@@ -392,11 +392,18 @@ private _disconnectUnits = [];
         private _unit = _x;
         private _vehicle = vehicle _unit;
         private _anchorPosition = getPosATL _vehicle;
-        _disconnectUnits pushBack [
+     _disconnectUnits pushBack [
             _unit,
             _vehicle,
             _anchorPosition
         ];
+
+        // Техника отключённого игрока защищена от удаления.
+        // Владелец — группа: защита снимется сама, когда cti_player_disconnected станет false.
+        if (_vehicle != _unit && !isNull _vehicle) then {
+            _vehicle setVariable ["svb_jip_owner", group _unit, true];
+            (group _unit) setVariable ["cti_jip_preserve", true, true];
+        };
 
 
         _unit setVariable [

@@ -48,16 +48,39 @@ class FSM
       name = "Garbage_Collecto";
       init = /*%FSM<STATEINIT""">*/"CTI_GarbageCollector = CTI_GarbageCollector - [objNull];" \n
        "" \n
+       "if (count allDead > 200) then {" \n
        "{" \n
        "	if (!(_x in CTI_GarbageCollector) && isNil {_x getVariable ""cti_gc_noremove""}) then {" \n
        "		CTI_GarbageCollector pushback _x;" \n
        "		[_x] spawn CTI_SE_FNC_TrashObject;" \n
-       "		diag_log format["":: GC :: sending %1 to trash"",_x];" \n
        "	};" \n
        "} forEach allDead;" \n
+       "};" \n
        "" \n
-       "_ncycle = time + 15;"/*%FSM</STATEINIT""">*/;
-      precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+       "private _svb_defTeams = [];" \n
+       "{" \n
+       "	private _side = _x;" \n
+       "	private _lg = _side call CTI_CO_FNC_GetSideLogic;" \n
+       "	if (!isNull _lg) then {" \n
+       "		private _dt = _lg getVariable [""cti_defensive_team"", grpNull];" \n
+       "		if (!isNull _dt) then {_svb_defTeams pushBack _dt};" \n
+       "	};" \n
+       "} forEach [west, east, resistance];" \n
+       "" \n
+       "private _svb_removed = 0;" \n
+       "{" \n
+       "	private _grp = _x;" \n
+       "	if (!isNull _grp && {count (units _grp) isEqualTo 0}) then {" \n
+       "		if (!(_grp call CTI_CO_FNC_IsGroupPlayable) && {!(_grp getVariable [""cti_defense_team"", false])} && {!(_grp getVariable [""cti_jip_preserve"", false])} && {!(_grp getVariable [""cti_player_disconnected"", false])} && {!(_grp in _svb_defTeams)}) then {" \n
+       "			_svb_removed = _svb_removed + 1;" \n
+       "			deleteGroup _grp;" \n
+       "		};" \n
+       "	};" \n
+       "} forEach allGroups;" \n
+       "" \n
+       "if (_svb_removed > 0) then {diag_log format ["":: GC :: empty groups removed: %1"", _svb_removed]};" \n
+       "" \n
+       "_ncycle = time + 180;"/*%FSM</STATEINIT""">*/;
       class Links
       {
         /*%FSM<LINK "Loop">*/
