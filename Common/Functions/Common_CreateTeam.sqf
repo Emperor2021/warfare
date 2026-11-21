@@ -103,10 +103,45 @@ if (count _base_pos < 3) then {_base_pos set [2, 0]};
 			} forEach _roads;
 		};
 
-		// Fallback (замена прежнему GetEmptyPosition 150): свободная точка вне дорог, но с учётом габаритов
+		// === FALLBACK: дорог нет (пустыня, поля) ===
+		// БЫЛО: одна попытка findEmptyPosition [5,150] от фиксированной _base_pos.
+		// Для всех машин группы возвращалась одна и та же ближайшая точка, а setPosATL
+		// ниже телепортировал их туда, убивая placement-разброс -> техника сама в себе.
+		// СТАЛО: разносим seed-точки вокруг базы и проверяем занятость тем же фильтром,
+		// что и в дорожной ветке выше. nearEntities видит машины, созданные в этом же
+		// цикле, в отличие от findEmptyPosition — это и закрывает стакание.
 		if (_v_pos isEqualTo []) then {
-			private _p = _base_pos findEmptyPosition [5, 150, _class];
-			if !(_p isEqualTo []) then {_v_pos = _p};
+			for "_try" from 1 to 40 do {
+				if !(_v_pos isEqualTo []) exitWith {};
+
+				private _dir = random 360;
+				private _dist = 8 + random 90;
+				private _seed = [
+					(_base_pos select 0) + (sin _dir) * _dist,
+					(_base_pos select 1) + (cos _dir) * _dist,
+					0
+				];
+
+				if (surfaceIsWater _seed) then {continue};
+
+				private _p = _seed findEmptyPosition [0, 60, _class];
+				if (_p isEqualTo []) then {continue};
+				if (surfaceIsWater _p) then {continue};
+
+				// Не ставим машину прямо на пехоту
+				if ({alive _x} count (_p nearEntities ["Man", 4]) > 0) then {continue};
+
+				// Не ставим машину в уже стоящую технику/статику/ящики
+				private _blockers = (_p nearEntities ["All", 12]) select {
+					alive _x && {
+						_x isKindOf "LandVehicle" || {_x isKindOf "Air"} || {_x isKindOf "Ship"} ||
+						{_x isKindOf "StaticWeapon"} || {_x isKindOf "AmmoBox"}
+					}
+				};
+				if (count _blockers > 0) then {continue};
+
+				_v_pos = _p;
+			};
 		};
 
 		if (_v_pos isEqualTo []) then {

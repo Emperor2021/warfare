@@ -43,17 +43,45 @@ _seed = _this select 6;
 //--- Серверная валидация связности покупателя (AdvNet).
 // При CTI_EW_ANET == 1 радиус покупки в update_actions.fsm = 300000,
 // т.е. дистанционный гейт отключён by design, а клиентский ctrlEnable — не защита.
-// Читаем готовое AN_iNet (его считает серверный AN_Update_Connection).
+// Читаем готовое AN_iNet (его считает AN_Update_Connection).
 // AN_Check_Connection не вызываем: внутри неё waitUntil, контекст вызова не подтверждён.
 private _netOK = true;
 if (missionNamespace getVariable ["CTI_EW_ANET", 0] == 1) then {
-	private _buyerObj = if (typeName _buyer == "OBJECT") then {_buyer} else {objNull};
-	private _sideID = if (typeName _side == "SIDE") then {_side call CTI_CO_FNC_GetSideID} else {-1};
-	private _net  = _buyerObj getVariable ["CTI_Net", -1];
-	private _inet = _buyerObj getVariable ["AN_iNet", -1];
-	_netOK = !isNull _buyerObj && {_net >= 0} && {_inet == _sideID};
-	if (!_netOK) then {
-		diag_log format [":: NET :: Purchase REJECTED (no network): buyer=%1 CTI_Net=%2 AN_iNet=%3 sideID=%4 class=%5 factory=%6", _buyerObj, _net, _inet, _sideID, _classname, _factory];
+	// BUYER по протоколу приходит ДВУХ типов, и это не ошибка вызова:
+	//   Client_PurchaseUnit.sqf:44                          -> player (OBJECT)
+	//   Events_UI_PurchaseMenu.sqf:200 (индеп. утилизатор)   -> group player (GROUP)
+	//   update_commander.fsm:898 (ИИ-командир)              -> группа ИИ (GROUP)
+	//   Server_AI_PurchaseSquad.sqf:64 (закупка ИИ-сквадов) -> группа ИИ (GROUP)
+	// CTI_Net / AN_iNet живут на ОБЪЕКТЕ, поэтому группу резолвим в юнита.
+	// Старый вариант превращал GROUP в objNull и молча резал утилизатора + весь закуп ИИ.
+	private _buyerObj = objNull;
+	private _isAIOrder = false;
+
+	switch (typeName _buyer) do {
+		case "OBJECT": { _buyerObj = _buyer };
+		case "GROUP": {
+			// Лидер группы может быть ботом — ищем именно игрока.
+			private _buyerPlayer = objNull;
+			{ if (isPlayer _x) exitWith { _buyerPlayer = _x } } forEach (units _buyer);
+
+			if (isNull _buyerPlayer) then {
+				// Игроков в группе нет -> внутренний серверный заказ ИИ,
+				// а не клиентский PV. Сетевой гейт к нему не применяем.
+				_isAIOrder = true;
+			} else {
+				_buyerObj = _buyerPlayer;
+			};
+		};
+	};
+
+	if !(_isAIOrder) then {
+		private _sideID = if (typeName _side == "SIDE") then {_side call CTI_CO_FNC_GetSideID} else {-1};
+		private _net  = _buyerObj getVariable ["CTI_Net", -1];
+		private _inet = _buyerObj getVariable ["AN_iNet", -1];
+		_netOK = !isNull _buyerObj && {_net >= 0} && {_inet == _sideID};
+		if (!_netOK) then {
+			diag_log format [":: NET :: Purchase REJECTED (no network): buyer=%1 type=%2 unit=%3 CTI_Net=%4 AN_iNet=%5 sideID=%6 class=%7 factory=%8", _buyer, typeName _buyer, _buyerObj, _net, _inet, _sideID, _classname, _factory];
+		};
 	};
 };
 // exitWith строго на верхнем уровне: внутри if then {} он вышел бы только из блока,
