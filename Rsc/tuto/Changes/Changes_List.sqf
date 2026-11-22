@@ -3,6 +3,10 @@
 // Формат: [Дата, Русский текст, Английский текст]
 
 private _changelog = [
+    ["22.11.2026",
+     "Добавлена система договорённости о захвате города за деньги без боя.<br/>За 900 м до города появляется переговорщик. Подойди к переговорщику и выбери через активное меню вариант, который тебе подходит.",
+     "Added a buyout system for capturing cities without combat.<br/>A negotiator appears 900 m from the city. Approach the negotiator and select your preferred option through the active menu."],
+
     ["21.10.2026",
      "Добавлены в меню обороны новые сооружения и мины.",
      "Added new structures and mines to the defense menu."],

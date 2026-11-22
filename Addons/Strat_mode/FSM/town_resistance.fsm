@@ -216,6 +216,7 @@ class FSM
        "		};" \n
        "	};" \n
        "};" \n
+       "if (_town getVariable [""svb_town_buyout"", false]) then { _town setVariable [""cti_town_resistance_activeTime"", -100000, true]; };" \n
        ""/*%FSM</STATEINIT""">*/;
       precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
       class Links
@@ -310,6 +311,7 @@ class FSM
        "};" \n
        "" \n
        "//_town setVariable [""cti_town_disactivate"",true];" \n
+       "_town setVariable [""svb_town_buyout"", false, true];" \n
        "" \n
        ""/*%FSM</STATEINIT""">*/;
       precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;

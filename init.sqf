@@ -101,7 +101,8 @@ call compile preprocessFileLineNumbers "Common\Init\Init_CommonConstants.sqf";
 if (isNil "SVB_INIT") then {
 	call compile preprocessFileLineNumbers "Addons\SVB\SVB_Init.sqf";
 };
-
+//--- SVB Town Buyout (выкуп городов сопротивления)
+call compile preprocessFileLineNumbers "Addons\SVB\SVB_TownBuyout.sqf";
 call compile preprocessFileLineNumbers "Common\Init\Init_Common.sqf";
 CTI_InitTowns = false;
 //--- Towns init

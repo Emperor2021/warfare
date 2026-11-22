@@ -3400,4 +3400,51 @@
             <Russian>ТЕБЯ УБИЛ И ОБОСАЛ: %1</Russian>
         </Key>
     </Package>
+	<Package name="TownBuyout">
+		<Key ID="STR_SVB_TownBuyout_Param">
+			<Original>Town buyout via negotiator</Original>
+			<Russian>Выкуп городов через переговорщика</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_Name">
+			<Original>Negotiator</Original>
+			<Russian>Переговорщик</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_Greet">
+			<Original>[Negotiator] %1 will surrender without a fight for $%2. Or take it by force.</Original>
+			<Russian>[Переговорщик] %1 сдастся без боя за $%2. Или бери силой.</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_Buy">
+			<Original>&lt;t color='#ffd700'&gt;Buy out %1 — $%2&lt;/t&gt;</Original>
+			<Russian>&lt;t color='#ffd700'&gt;Выкупить %1 — $%2&lt;/t&gt;</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_Refuse">
+			<Original>&lt;t color='#ff6666'&gt;Refuse — take by force&lt;/t&gt;</Original>
+			<Russian>&lt;t color='#ff6666'&gt;Отказаться — брать силой&lt;/t&gt;</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_NoFunds">
+			<Original>[Negotiator] You need $%1. No money — fight.</Original>
+			<Russian>[Переговорщик] Нужно $%1. Денег нет — воюй.</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_NeedPrice">
+			<Original>Not enough funds: need $%1</Original>
+			<Russian>Не хватает денег: нужно $%1</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_Paid">
+			<Original>You paid $%1 for %2</Original>
+			<Russian>Вы заплатили $%1 за %2</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_Refused">
+			<Original>The negotiator left. The town must be taken by force.</Original>
+			<Russian>Переговорщик ушёл. Город придётся брать силой.</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_Killed">
+			<Original>The negotiator at %1 was killed. Negotiations failed — take the town by force.</Original>
+			<Russian>Переговорщик в %1 убит. Переговоры сорваны — город придётся брать силой.</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_Refund">
+			<Original>The town already changed hands — funds refunded</Original>
+			<Russian>Город уже сменил владельца — деньги возвращены</Russian>
+		</Key>
+	</Package>
 </Project>
+

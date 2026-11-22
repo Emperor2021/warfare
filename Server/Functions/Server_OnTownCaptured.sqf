@@ -10,12 +10,14 @@
   # PARAMETERS #
     0	[Object]: The Town
     1	[Side]: The side which captured the town
+    2	{Optional} [Boolean]: Award capture bounty/score (default true; false = SVB town buyout)
 
   # RETURNED VALUE #
 	None
 
   # SYNTAX #
 	[TOWN, SIDE] call CTI_SE_FNC_OnTownCaptured
+	[TOWN, SIDE, false] call CTI_SE_FNC_OnTownCaptured  //--- SVB: выкуп города, без награды
 
   # DEPENDENCIES #
 
@@ -37,7 +39,8 @@ private ["_award_teams", "_currentSideID", "_last_capture", "_newSide", "_newSid
 _town = _this select 0;
 _newSide = _this select 1;
 
-
+//--- SVB: необязательный 3-й параметр — выдавать ли награду за захват (false при выкупе города)
+private _award = if (count _this > 2) then {_this select 2} else {true};
 
 _newSideID = (_newSide) call CTI_CO_FNC_GetSideID;
 _currentSideID = _town getVariable "cti_town_sideID";
@@ -52,38 +55,38 @@ _town setVariable ["CTI_Net", _newSideID, true];
 
 ["CLIENT", "Client_OnTownCaptured", [_town, _newSideID, _currentSideID]] call CTI_CO_FNC_NetSend;
 
-_award_teams = [];
-{
-	if (({alive _x && (_x distance _town) <= CTI_MARKERS_TOWN_AREA_RANGE} count (units _x))>0) then {_award_teams set [count _award_teams, _x]};
-	true
-} count ((_newSide call CTI_CO_FNC_GetSideLogic) getVariable "cti_teams");
-
-
-if !(((_newSide) call CTI_CO_FNC_GetSideCommander) in _award_teams) then {_award_teams set [count _award_teams,((_newSide) call CTI_CO_FNC_GetSideCommander)]};
-if (count _award_teams > 0) then {
-	_last_capture = _town getVariable format["cti_town_lastcap_%1", _newSide];
-	_value = (_town getVariable "cti_town_value") * 10;
-
-	if !(isNil '_last_capture') then {
-		if (time - _last_capture <= CTI_TOWNS_CAPTURE_BOUNTY_DELAY) then { _value = round(_value / 4) };
-	};
-
-	_score = round(_value / CTI_SCORE_TOWN_VALUE_PERPOINT);
+//--- SVB: награда за захват выдаётся только если _award (при выкупе города = false)
+if (_award) then {
+	_award_teams = [];
 	{
-		if (_score > 0) then {[leader _x, _score] spawn CTI_SE_FNC_AddScore};
-	} forEach _award_teams;
+		if (({alive _x && (_x distance _town) <= CTI_MARKERS_TOWN_AREA_RANGE} count (units _x))>0) then {_award_teams set [count _award_teams, _x]};
+		true
+	} count ((_newSide call CTI_CO_FNC_GetSideLogic) getVariable "cti_teams");
+
 
 	if !(((_newSide) call CTI_CO_FNC_GetSideCommander) in _award_teams) then {_award_teams set [count _award_teams,((_newSide) call CTI_CO_FNC_GetSideCommander)]};
-	{
-		_mult=if ((missionNamespace getVariable "CTI_GROUP_AWARD_MULT") == 1) then {{isplayer _x}count (units _x)} else {1};
-		{if (isplayer _x )then {[["CLIENT", _x], "Client_OnMessageReceived", ["town_award",[( _value*_mult), (_town getVariable "cti_town_name")]],true] call CTI_CO_FNC_NetSend};true} count (units _x);
-		[_x, _newSide,( _value*_mult)] call CTI_CO_FNC_ChangeFunds;
-	} count _award_teams;
+	if (count _award_teams > 0) then {
+		_last_capture = _town getVariable format["cti_town_lastcap_%1", _newSide];
+		_value = (_town getVariable "cti_town_value") * 10;
+
+		if !(isNil '_last_capture') then {
+			if (time - _last_capture <= CTI_TOWNS_CAPTURE_BOUNTY_DELAY) then { _value = round(_value / 4) };
+		};
+
+		_score = round(_value / CTI_SCORE_TOWN_VALUE_PERPOINT);
+		{
+			if (_score > 0) then {[leader _x, _score] spawn CTI_SE_FNC_AddScore};
+		} forEach _award_teams;
+
+		if !(((_newSide) call CTI_CO_FNC_GetSideCommander) in _award_teams) then {_award_teams set [count _award_teams,((_newSide) call CTI_CO_FNC_GetSideCommander)]};
+		{
+			_mult=if ((missionNamespace getVariable "CTI_GROUP_AWARD_MULT") == 1) then {{isplayer _x}count (units _x)} else {1};
+			{if (isplayer _x )then {[["CLIENT", _x], "Client_OnMessageReceived", ["town_award",[( _value*_mult), (_town getVariable "cti_town_name")]],true] call CTI_CO_FNC_NetSend};true} count (units _x);
+			[_x, _newSide,( _value*_mult)] call CTI_CO_FNC_ChangeFunds;
+		} count _award_teams;
+	};
 };
 
 
 
 _town setVariable [format["cti_town_lastcap_%1", _newSide], time];
-
-
-

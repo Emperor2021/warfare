@@ -139,5 +139,10 @@ switch (_message_var) do {
 	case "enemy-building-destroyed": {
 		player commandChat format [localize "STR_Enemy_Building_Destroyed", _parameters select 0, _parameters select 1];
 	};
-
+	//--- SVB: универсальное локализованное сообщение выкупа городов (ключ stringtable + аргументы)
+	case "svb-dealer": {
+		if (count _parameters >= 2 && {(_parameters select 0) isEqualType ""} && {(_parameters select 1) isEqualType []}) then {
+			HUD_NOTIFICATIONS pushBack [format ([localize (_parameters select 0)] + (_parameters select 1)), time+60, "ffffff"];
+		};
+	};
 };

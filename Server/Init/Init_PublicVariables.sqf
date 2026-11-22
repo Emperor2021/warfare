@@ -231,5 +231,7 @@ with missionNamespace do {
 		if (isNil "_bot" || {isNull _bot} || {!alive _bot}) exitWith {};
 		[_bot, (side _bot) call CTI_CO_FNC_GetSideID] spawn AN_Launch;
 	};
-
+	//--- SVB: выкуп города сопротивления
+	CTI_PVF_Request_TownBuyout = { _this spawn svb_fnc_townBuyoutServer };
+	CTI_PVF_Request_TownBuyoutRefuse = { _this spawn svb_fnc_townBuyoutRefuse };
 };

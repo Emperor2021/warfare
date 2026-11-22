@@ -721,4 +721,11 @@ class Params {
     texts[] = {"Disabled", "Instant Build Only", "Instant Build + Free"};
     default = 0;
 	};
+	//--- SVB: выкуп городов через переговорщика
+	class SVB_TOWN_BUYOUT {
+		title = $STR_SVB_TownBuyout_Param;
+		values[] = {0, 1};
+		texts[] = {$STR_CTI_DISABLED, $STR_CTI_ENABLED};
+		default = 1;
+	};
 };
