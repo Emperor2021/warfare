@@ -3445,6 +3445,26 @@
 			<Original>The town already changed hands — funds refunded</Original>
 			<Russian>Город уже сменил владельца — деньги возвращены</Russian>
 		</Key>
+				<Key ID="STR_SVB_TownBuyout_DealFriendly">
+			<Original>Ally is buying %1 for $%2. Protect the negotiator for %3 sec!</Original>
+			<Russian>Союзник выкупает %1 за $%2. Защити переговорщика %3 сек!</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_DealEnemy">
+			<Original>Enemy is buying %1 for $%2! Kill the negotiator within %3 sec and take the money!</Original>
+			<Russian>Противник выкупает %1 за $%2! Убей переговорщика за %3 сек и забери деньги!</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_AimDeal">
+			<Original>DEAL IN PROGRESS: %1 for $%2. Kill the negotiator now — the money is yours!</Original>
+			<Russian>ИДЁТ СДЕЛКА: %1 за $%2. Убей переговорщика сейчас — деньги твои!</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_AimIdle">
+			<Original>Negotiator of %1. No deal yet. If the enemy starts a buyout — kill him and take the money.</Original>
+			<Russian>Переговорщик города %1. Сделки нет. Если противник начнёт выкуп — убей его и забери деньги.</Russian>
+		</Key>
+		<Key ID="STR_SVB_TownBuyout_AimIdleOwn">
+			<Original>Negotiator of %1. Approach and buy the town without a fight.</Original>
+			<Russian>Переговорщик города %1. Подойди и выкупи город без боя.</Russian>
+		</Key>
 	</Package>
 </Project>
 
