@@ -3465,6 +3465,10 @@
 			<Original>Negotiator of %1. Approach and buy the town without a fight.</Original>
 			<Russian>Переговорщик города %1. Подойди и выкупи город без боя.</Russian>
 		</Key>
+		<Key ID="STR_SVB_TownBuyout_InterceptedLost">
+			<Original>The negotiator was killed by your side during the deal. Funds lost, city remains neutral.</Original>
+			<Russian>Переговорщик убит своими во время сделки. Деньги потеряны, город остаётся нейтральным.</Russian>
+		</Key>
 	</Package>
 </Project>
 
