@@ -17,11 +17,7 @@ if (isNil "svb_town_buyout_hourStep")   then { svb_town_buyout_hourStep = 100; }
 if (isNil "svb_town_buyout_transferTime") then { svb_town_buyout_transferTime = 20; };  // фаза передачи денег = окно перехвата, сек
 if (isNil "svb_town_dealer_notifyRange") then { svb_town_dealer_notifyRange = 2000; };   // радиус оповещения игроков о сделке
 if (isNil "svb_town_buyout_offlink_mult") then { svb_town_buyout_offlink_mult = 2; }; // множитель за город НЕ на линии связи
-<<<<<<< HEAD
 if (isNil "svb_town_dealer_spawnRange") then { svb_town_dealer_spawnRange = 900; };   // зона переговоров (> 800м детекции сопротивления)
-=======
-if (isNil "svb_town_dealer_spawnRange") then { svb_town_dealer_spawnRange = 1000; };   // зона переговоров (> 800м детекции сопротивления)
->>>>>>> 172fc410eb02e2eeb8f136e9dfa9dc15aa923a8a
 if (isNil "svb_town_dealer_talkRange")  then { svb_town_dealer_talkRange = 10; };      // радиус диалога
 if (isNil "svb_town_dealer_cooldown")   then { svb_town_dealer_cooldown = 600; };     // кулдаун после отказа/выкупа, сек
 if (isNil "svb_town_dealers") then { svb_town_dealers = []; };                        // живые боты (синхронизируется сервером)
