@@ -15,10 +15,10 @@ if (isNil "svb_town_buyout_multiplier") then { svb_town_buyout_multiplier = 200;
 if (isNil "svb_town_buyout_minPrice")   then { svb_town_buyout_minPrice = 50000; };   // минимальная цена выкупа
 if (isNil "svb_town_buyout_hourStep")   then { svb_town_buyout_hourStep = 100; };     // на сколько растёт множитель каждый час
 if (isNil "svb_town_buyout_transferTime") then { svb_town_buyout_transferTime = 20; };  // фаза передачи денег = окно перехвата, сек
-if (isNil "svb_town_dealer_notifyRange") then { svb_town_dealer_notifyRange = 900; };   // радиус оповещения игроков о сделке
+if (isNil "svb_town_dealer_notifyRange") then { svb_town_dealer_notifyRange = 2000; };   // радиус оповещения игроков о сделке
 if (isNil "svb_town_buyout_offlink_mult") then { svb_town_buyout_offlink_mult = 2; }; // множитель за город НЕ на линии связи
-if (isNil "svb_town_dealer_spawnRange") then { svb_town_dealer_spawnRange = 900; };   // зона переговоров (> 800м детекции сопротивления)
-if (isNil "svb_town_dealer_talkRange")  then { svb_town_dealer_talkRange = 8; };      // радиус диалога
+if (isNil "svb_town_dealer_spawnRange") then { svb_town_dealer_spawnRange = 1000; };   // зона переговоров (> 800м детекции сопротивления)
+if (isNil "svb_town_dealer_talkRange")  then { svb_town_dealer_talkRange = 10; };      // радиус диалога
 if (isNil "svb_town_dealer_cooldown")   then { svb_town_dealer_cooldown = 600; };     // кулдаун после отказа/выкупа, сек
 if (isNil "svb_town_dealers") then { svb_town_dealers = []; };                        // живые боты (синхронизируется сервером)
 
@@ -113,18 +113,45 @@ if (isServer) then {
         svb_town_dealers pushBack _unit;
         publicVariable "svb_town_dealers";
 
-        // Убийство бота = срыв переговоров
+                        // Убийство бота = перехват сделки ИЛИ обычный срыв
         _unit addEventHandler ["Killed", {
             params ["_unit", "_killer", "_instigator"];
             private _town = _unit getVariable ["svb_town_dealer_town", objNull];
             if (isNull _town) exitWith {};
-            _town setVariable ["svb_town_dealer_killed", true, true];
             private _townName = _town getVariable ["cti_town_name", "?"];
-            [["CLIENT", west], "Client_OnMessageReceived", ["svb-dealer", ["STR_SVB_TownBuyout_Killed", [_townName]]]] call CTI_CO_FNC_NetSend;
-            [["CLIENT", east], "Client_OnMessageReceived", ["svb-dealer", ["STR_SVB_TownBuyout_Killed", [_townName]]]] call CTI_CO_FNC_NetSend;
             private _who = if (!isNull _instigator) then {_instigator} else {_killer};
-            diag_log format ["[SVB_TOWN_BUYOUT] %1: переговорщик убит (%2), выкуп заблокирован до смены владельца",
-                _townName, if (!isNull _who) then {name _who} else {"неизвестно"}];
+            private _deal = _town getVariable ["svb_town_buyout_deal", []];
+
+            if (count _deal > 0) then {
+                // === СДЕЛКА В ПРОЦЕССЕ ===
+                _deal params ["_grp", "_side", "_price", "_client"];
+                _town setVariable ["svb_town_buyout_intercepted", true];
+                _town setVariable ["svb_town_buyout_deal", []];
+                _town setVariable ["svb_town_deal_info", [], true];
+                // КУЛДАУН: бот не появляется 10 минут после срыва сделки
+                _town setVariable ["svb_town_dealer_blockedUntil", time + svb_town_dealer_cooldown, true];
+
+                if (!isNull _who && {isPlayer _who} && {side _who in [west, east]} && {side _who != _side}) then {
+                    // Враг убил → деньги уходят убийце, город остаётся зелёным
+                    [group _who, side _who, _price] call CTI_CO_FNC_ChangeFunds;
+                    [["CLIENT", _client], "Client_OnMessageReceived", ["svb-dealer", ["STR_SVB_TownBuyout_InterceptedBuyer", [_price]]]] call CTI_CO_FNC_NetSend;
+                    [["CLIENT", _who], "Client_OnMessageReceived", ["svb-dealer", ["STR_SVB_TownBuyout_InterceptedKiller", [_price]]]] call CTI_CO_FNC_NetSend;
+                    diag_log format ["[SVB_TOWN_BUYOUT] %1: сделка перехвачена %2, $%3 переведены убийце, кулдаун %4с", _townName, name _who, _price, svb_town_dealer_cooldown];
+                } else {
+                    // Свой/ИИ убил → деньги теряются, город остаётся зелёным
+                    [["CLIENT", _client], "Client_OnMessageReceived", ["svb-dealer", ["STR_SVB_TownBuyout_InterceptedLost", []]]] call CTI_CO_FNC_NetSend;
+                    diag_log format ["[SVB_TOWN_BUYOUT] %1: сделка сорвана своими, $%2 потеряны, кулдаун %3с", _townName, _price, svb_town_dealer_cooldown];
+                };
+            } else {
+                // === ОБЫЧНОЕ УБИЙСТВО ВНЕ СДЕЛКИ ===
+                _town setVariable ["svb_town_dealer_killed", true, true];
+                // КУЛДАУН: бот не появляется 10 минут после убийства вне сделки
+                _town setVariable ["svb_town_dealer_blockedUntil", time + svb_town_dealer_cooldown, true];
+                [["CLIENT", west], "Client_OnMessageReceived", ["svb-dealer", ["STR_SVB_TownBuyout_Killed", [_townName]]]] call CTI_CO_FNC_NetSend;
+                [["CLIENT", east], "Client_OnMessageReceived", ["svb-dealer", ["STR_SVB_TownBuyout_Killed", [_townName]]]] call CTI_CO_FNC_NetSend;
+                diag_log format ["[SVB_TOWN_BUYOUT] %1: переговорщик убит (%2), выкуп заблокирован, кулдаун %3с",
+                    _townName, if (!isNull _who) then {name _who} else {"неизвестно"}, svb_town_dealer_cooldown];
+            };
         }];
     };
 
@@ -190,6 +217,7 @@ if (isServer) then {
             _town setVariable ["svb_town_buyout_intercepted", false];
             _town setVariable ["svb_town_deal_info", [], true];
             _town setVariable ["svb_town_buyout_lock", false];
+            _town setVariable ["svb_town_dealer_blockedUntil", time + svb_town_dealer_cooldown, true]; 
             [_town] call svb_fnc_townDealerRemove;
             diag_log format ["[SVB_TOWN_BUYOUT] %1: сделка провалена (перехват при передаче)", _townName];
         };
@@ -199,6 +227,7 @@ if (isServer) then {
             _town setVariable ["svb_town_buyout_deal", []];
             _town setVariable ["svb_town_deal_info", [], true];
             _town setVariable ["svb_town_buyout_lock", false];
+            _town setVariable ["svb_town_dealer_blockedUntil", time + svb_town_dealer_cooldown, true];
             [["CLIENT", _client], "Client_OnMessageReceived", ["svb-dealer", ["STR_SVB_TownBuyout_Refund", []]]] call CTI_CO_FNC_NetSend;
         };
 
