@@ -454,7 +454,8 @@ if (CTI_IsClient) then {
 
 		};
 	};
-
+	// SVB: маркеры-задания по доступным городам линии фронта
+	0 execVM "Addons\SVB\SVB_TownTaskMarkers.sqf";
 	// HUD
 	if (missionNamespace getVariable "CTI_EW_HUD" == 1 ) then {
 		0 execVM	 "Addons\Strat_mode\HUD\HUD_init.sqf";

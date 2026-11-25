@@ -65,15 +65,20 @@ class FSM
        "	) then {true} else {false};" \n
        "      _availlable=if (_x in (_sl getvariable ""CTI_AVAILLABLE"")) then {true} else {false};" \n
        "      _priority=if (_x == (_sl getvariable ""CTI_PRIORITY"")) then {true} else {false};	" \n
+       "	_any_ours = if (({(_x getVariable [""cti_town_sideID"",-1]) == CTI_P_SideID} count CTI_Towns) > 0) then {true} else {false};" \n
+       "	_linked = if (({!isNull _x && {(_x getVariable [""cti_town_sideID"",-1]) == CTI_P_SideID}} count (_x getVariable [""CTI_Neigh"",[]])) > 0) then {true} else {false};" \n
+       "	_show_town = if ((_sideID == CTI_P_SideID) || !_any_ours || _linked || _active) then {true} else {false};" \n
+       "	_town_color = if (_sideID >= 0) then { if (_sideID == CTI_P_SideID) then {CTI_P_SideColor} else { ((_sideID) call CTI_CO_FNC_GetSideFromID) call CTI_CO_FNC_GetSideColoration } } else { markerColor _town_marker };" \n
+       "	if (markerColor _town_marker != _town_color) then { _town_marker setMarkerColorLocal _town_color };" \n
        "" \n
        "	if (_availlable || CTI_P_SideJoined == resistance) then {" \n
        "			if (markerAlpha _marker_area == 0) then { _marker_area setMarkerAlphaLocal CTI_MARKERS_OPACITY };" \n
-       "			if (markerAlpha _town_marker == 0) then { _town_marker setMarkerAlphaLocal 1 };" \n
+       "			if (_show_town) then { if (markerAlpha _town_marker == 0) then { _town_marker setMarkerAlphaLocal 1 } } else { if (markerAlpha _town_marker != 0) then { _town_marker setMarkerAlphaLocal 0 } };" \n
        "			_marker_area setMarkerColorLocal  ""ColorWhite"";" \n
        "" \n
        "	}else {" \n
        "			if (markerAlpha _marker_area != 0) then { _marker_area setMarkerAlphaLocal 0 };" \n
-       "			if (markerAlpha _town_marker != 0) then { _town_marker setMarkerAlphaLocal 0 };" \n
+       "			if (_show_town) then { if (markerAlpha _town_marker == 0) then { _town_marker setMarkerAlphaLocal 1 } } else { if (markerAlpha _town_marker != 0) then { _town_marker setMarkerAlphaLocal 0 } };" \n
        "	};" \n
        "" \n
        "" \n
